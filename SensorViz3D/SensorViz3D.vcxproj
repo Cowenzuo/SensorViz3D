@@ -103,11 +103,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <QtRcc Include="MainWindow.qrc" />
-    <QtUic Include="MainWindow.ui" />
-    <QtMoc Include="MainWindow.h" />
-    <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="main.cpp" />
+    <QtRcc Include="SensorViz3D.qrc" />
+    <QtUic Include="app\MainWindow.ui" />
+    <QtMoc Include="app\MainWindow.h" />
+    <ClCompile Include="app\MainWindow.cpp" />
+    <ClCompile Include="app\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
