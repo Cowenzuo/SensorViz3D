@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QFileInfo>
 
+#include "rwmat/ReadWriteMatFile.h"
+#include "charts/ChartPainter.h"
 ProjectData::ProjectData(QObject* parent)
 	: QObject(parent)
 {
@@ -69,9 +71,32 @@ bool ProjectData::loadDataPackage(const QString& dirPath)
 		return false;
 	}
 
+	// 保存根目录信息
 	_rootName = QFileInfo(dirPath).baseName();
 	_rootDirPath = QDir(dirPath).absolutePath();
 	return true;
+}
+
+bool ProjectData::save(const QString& dirPath)
+{
+	QDir exportRootDir(dirPath + "/export");
+	if (!exportRootDir.exists())
+	{
+		exportRootDir.mkpath(".");
+	}
+	// 遍历_fpCharts调用save
+	for (auto iter = _fpCharts.begin(); iter != _fpCharts.end(); ++iter)
+	{
+		auto savedir = exportRootDir.absolutePath() + "/" + iter.key() + "/脉动压力";
+		QDir savedirpath(savedir);
+		if (!savedirpath.exists())
+		{
+			savedirpath.mkpath(".");
+		}
+		iter.value()->save(savedir, 450, 170);
+	}
+
+	return false;
 }
 
 bool ProjectData::loadWorkingConditions(const QString& dirPath)
@@ -237,10 +262,79 @@ bool ProjectData::loadWorkingConditions(const QString& dirPath)
 
 bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 {
+	//固定读取当前文件夹下的一个名为settings文件，内容为传感器名称
+	QFile file(dirPath + "/settings");
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+	{
+		qDebug() << "Failed to open file: " << file.fileName();
+		return false;
+	}
+	QTextStream in(&file);
+	in.setCodec("utf-8");
+	QString line = in.readLine();
+	QStringList sensorNames = line.split(",");
+	file.close();
+
+
 	QDir fpDir(dirPath);
 	QStringList matFiles = fpDir.entryList(QStringList() << "*.mat", QDir::Files);
 	foreach(const QString & matFile, matFiles) {
+		//通过文件名在工况列表中查找对应的工况
+		QString wcName = QFileInfo(matFile).baseName();
+		if (!_workingConditions.contains(wcName) /*|| _workingConditions[wcName].type == 0*/) {
+			continue;
+		}
+		qDebug() << "Loading mat file: " << matFile;
+		FPData fp;
+		fp.wcname = wcName;
+		if (!RWMAT::readMatFile(fpDir.filePath(matFile), sensorNames, fp))
+		{
+			qWarning() << "Failed to load mat file: " << matFile;
+			continue;
+		}
+
+		const int segmentSize = fp.dataCount / SEGMENT_COUNT;
+		if (segmentSize < 1) {
+			qWarning() << "Data count too small for segmentation in file:" << matFile;
+			continue;
+		}
+		const int offset = qMax(0, (segmentSize / 2) - 1);  // 确保offset非负
+		fp.dataCountEach = offset;
+
+		for (int i = 0; i < SEGMENT_COUNT - 1; i++)
+		{
+			QMap<QString, double*>segData{};
+			QMap<QString, Statistics>segStatistics{};
+			for (auto& sensorName : sensorNames)
+			{
+				double* data = new double[segmentSize];
+				for (int j = 0; j < segmentSize; j++)
+				{
+					data[j] = fp.data[sensorName][i * segmentSize + j + offset];
+					//统计最大值、最小值、均方根
+					if (j == 0) {
+						segStatistics[sensorName].max = data[j];
+						segStatistics[sensorName].min = data[j];
+						segStatistics[sensorName].rms = data[j] * data[j];
+					}
+					else {
+						segStatistics[sensorName].max = qMax(segStatistics[sensorName].max, data[j]);
+						segStatistics[sensorName].min = qMin(segStatistics[sensorName].min, data[j]);
+						segStatistics[sensorName].rms += data[j] * data[j];
+					}
+				}
+				segStatistics[sensorName].rms = sqrt(segStatistics[sensorName].rms / segmentSize);
+				segData[sensorName] = data;
+			}
+			fp.segData.append(segData);
+			fp.segStatistics.append(segStatistics);
+		}
+		// 生成脉动压力时序频谱图
+		FPChart* chart = new FPChart();
+		chart->setData(fp);
+		_fpCharts[wcName] = chart;
+		_fpData[wcName] = fp;
 	}
 
-	return false;
+	return true;
 }

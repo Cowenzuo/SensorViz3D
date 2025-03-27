@@ -67,7 +67,7 @@ VS工程配置属性里面的“常规”-“输出目录”设置有修改：
 
 # 可执行运行依赖环境设置
 VS工程配置属性里面的“调试”-“环境”设置：（取消左下角的父级继承）
-> PATH=$(QtDllPath);$(SolutionDir)3rdprty\bin;$(MatLabInstallDir)\R2024b\extern\bin;$(OSGInstallDir)\bin%PATH%
+> PATH=$(QtDllPath);$(SolutionDir)3rdprty\bin;$(MatLabInstallDir)\R2024b\extern\bin\win64;$(MatLabInstallDir)\R2024b\bin\win64;$(OSGInstallDir)\bin%PATH%
 > 
 > 预设了MatLabInstallDir、OSGInstallDir的bin运行时库的引用
 

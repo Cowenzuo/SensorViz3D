@@ -105,6 +105,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="app\ProjectData.cpp" />
+    <ClCompile Include="charts\ChartPainter.cpp" />
+    <ClCompile Include="charts\ScalableCustomPlot.cpp" />
+    <ClCompile Include="PSDAnalyzer.cpp" />
+    <ClCompile Include="rwmat\ReadWriteMatFile.cpp" />
     <QtRcc Include="SensorViz3D.qrc" />
     <QtUic Include="app\MainWindow.ui" />
     <QtMoc Include="app\MainWindow.h" />
@@ -113,6 +117,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="app\ProjectData.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="charts\ChartPainter.h" />
+    <ClInclude Include="charts\ScalableCustomPlot.h" />
+    <ClInclude Include="PSDAnalyzer.h" />
+    <ClInclude Include="rwmat\ReadWriteMatFile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
