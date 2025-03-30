@@ -52,7 +52,7 @@
     <ClCompile Include="charts\ScalableCustomPlot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PSDAnalyzer.cpp">
+    <ClCompile Include="charts\PSDAnalyzer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,7 +71,7 @@
     <ClInclude Include="charts\ScalableCustomPlot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PSDAnalyzer.h">
+    <ClInclude Include="charts\PSDAnalyzer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

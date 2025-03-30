@@ -4,9 +4,12 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QVariant>
 
 #include "rwmat/ReadWriteMatFile.h"
 #include "charts/ChartPainter.h"
+
+
 ProjectData::ProjectData(QObject* parent)
 	: QObject(parent)
 {
@@ -77,6 +80,9 @@ bool ProjectData::loadDataPackage(const QString& dirPath)
 	return true;
 }
 
+// Python 异常检查宏
+#define PY_CHECK() if (PyErr_Occurred()) { PyErr_Print(); return false; }
+
 bool ProjectData::save(const QString& dirPath)
 {
 	QDir exportRootDir(dirPath + "/export");
@@ -84,9 +90,16 @@ bool ProjectData::save(const QString& dirPath)
 	{
 		exportRootDir.mkpath(".");
 	}
+
+	auto filepath = QString("%1/export/%2.docx").arg(dirPath, _rootName);
+
+	initWordDocment();
+	saveWorkingConditionsToDocx();
+
 	// 遍历_fpCharts调用save
 	for (auto iter = _fpCharts.begin(); iter != _fpCharts.end(); ++iter)
 	{
+		//构建一个文档对象
 		auto savedir = exportRootDir.absolutePath() + "/" + iter.key() + "/脉动压力";
 		QDir savedirpath(savedir);
 		if (!savedirpath.exists())
@@ -94,9 +107,23 @@ bool ProjectData::save(const QString& dirPath)
 			savedirpath.mkpath(".");
 		}
 		iter.value()->save(savedir, 450, 170);
+		//iter.value()->save(doc, savedir, 450, 170);
 	}
+	//如果filepath文件存在，则先删除
+	QFile docFile(filepath);
+	if (docFile.exists()) {
+		if (!docFile.remove()) {
+			qDebug() << "Failed to remove existing file: " << filepath;
+			return false;
+		}
+	}
+	_wordDocument->dynamicCall("SaveAs(const QString&)", QFileInfo(docFile).absoluteFilePath());
+	_wordDocument->dynamicCall("Close()");
+	_wordWriter->dynamicCall("Quit()");
 
-	return false;
+	delete _wordWriter;
+
+	return true;
 }
 
 bool ProjectData::loadWorkingConditions(const QString& dirPath)
@@ -330,11 +357,232 @@ bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 			fp.segStatistics.append(segStatistics);
 		}
 		// 生成脉动压力时序频谱图
-		FPChart* chart = new FPChart();
+		FPChart* chart = new FPChart("脉动压力", "kPa");
 		chart->setData(fp);
 		_fpCharts[wcName] = chart;
 		_fpData[wcName] = fp;
 	}
 
 	return true;
+}
+
+bool ProjectData::initWordDocment()
+{
+	_wordWriter = new QAxObject("Word.Application");
+	if (!_wordWriter) {
+		qWarning() << "Failed to initialize Word application";
+		return false;
+	}
+	// 设置Word不可见（静默操作）
+	_wordWriter->setProperty("Visible", false);
+	// 获取文档集合
+	QAxObject* documents = _wordWriter->querySubObject("Documents");
+	if (!documents) {
+		_wordWriter->dynamicCall("Quit()");
+		delete _wordWriter;
+		return false;
+	}
+	// 添加新文档
+	_wordDocument = documents->querySubObject("Add()");
+	if (!_wordDocument) {
+		_wordWriter->dynamicCall("Quit()");
+		delete _wordWriter;
+		return false;
+	}
+	// 获取选区对象（即光标）
+	_wordSelection = _wordWriter->querySubObject("Selection");
+	if (!_wordSelection) {
+		_wordDocument->dynamicCall("Close()");
+		_wordWriter->dynamicCall("Quit()");
+		delete _wordWriter;
+		return false;
+	}
+	return true;
+}
+
+bool ProjectData::saveWorkingConditionsToDocx()
+{
+	//章节标题
+	setnNormalSelectionStyle(ParagraphFormat::Level1Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "一、工况");
+	_wordSelection->dynamicCall("TypeParagraph()");
+
+	//表格标题
+	setnNormalSelectionStyle(ParagraphFormat::ChartCaption);
+	addCaption("工况列表", true);
+
+	// 创建表格并设置剧中
+	int wcsize = _workingConditions.count();
+	int columns = 7; // 对应header0的大小
+	QAxObject* tables = _wordDocument->querySubObject("Tables");
+	QAxObject* range = _wordSelection->querySubObject("Range");
+	QAxObject* table = tables->querySubObject("Add(Range*, int, int,QVariant,QVariant)"
+		, range->asVariant(), wcsize + 2, columns, "0", "1");
+	table->querySubObject("Range")->querySubObject("ParagraphFormat")->setProperty("Alignment", 1);
+
+	// 填充表头
+	QStringList header0{ "序号", "名称","描述","闸门开度","","活塞杆开度","" };
+	//setnNormalSelectionStyle(ParagraphFormat::TableHeader);
+	for (int i = 0; i < header0.size(); i++) {
+		QScopedPointer<QAxObject> cell(table->querySubObject("Cell(int, int)", 1, i + 1));
+		QScopedPointer<QAxObject> range(cell->querySubObject("Range"));
+		range->dynamicCall("SetText(const QString&)", header0[i]);
+		QScopedPointer<QAxObject> font(range->querySubObject("Font"));
+		font->setProperty("Name", "宋体");
+		font->setProperty("Size", 10);
+		font->setProperty("Bold", true);
+		range->querySubObject("ParagraphFormat")->setProperty("Alignment", 1);
+		cell->setProperty("VerticalAlignment", 1); // 垂直居中
+	}
+
+	// 填充第二行表头
+	QStringList header1{ "", "","","起始","终止","起始","终止" };
+	for (int i = 0; i < header1.size(); i++) {
+		QScopedPointer<QAxObject> cell(table->querySubObject("Cell(int, int)", 2, i + 1));
+		QScopedPointer<QAxObject> range(cell->querySubObject("Range"));
+		range->dynamicCall("SetText(const QString&)", header1[i]);
+		QScopedPointer<QAxObject> font(range->querySubObject("Font"));
+		font->setProperty("Name", "宋体");
+		font->setProperty("Size", 10);
+		font->setProperty("Bold", true);
+		range->querySubObject("ParagraphFormat")->setProperty("Alignment", 1);
+		cell->setProperty("VerticalAlignment", 1); // 垂直居中
+	}
+
+	// 执行合并
+	// 行合并不会减少序列，但是列合并，会直接少列序号!!!
+	mergeCells(table, 1, 1, 2, 1); // 合并序号列
+	mergeCells(table, 1, 2, 2, 2); // 合并名称列
+	mergeCells(table, 1, 3, 2, 3); // 合并描述列
+	mergeCells(table, 1, 4, 1, 5); // 合并闸门开度标题
+	mergeCells(table, 1, 5, 1, 6); // 合并活塞杆开度标题（不是6、7的原因是前面合并单元格了）
+
+	// 对keys进行排序并填充数据行
+	QList<QString> keys = _workingConditions.keys();
+	auto numericCompare = [](const QString& a, const QString& b) -> bool {
+		bool ok1, ok2;
+		int numA = a.toInt(&ok1), numB = b.toInt(&ok2);
+		if (ok1 && ok2) return numA < numB;
+		else if (ok1) return true;
+		else if (ok2) return false;
+		else return a < b;
+		};
+	std::sort(keys.begin(), keys.end(), numericCompare);
+	for (int i = 0; i < wcsize; i++) {
+		auto wc = _workingConditions[keys[i]];
+		int row = i + 3; // Word表格行从1开始，前两行是表头
+		// 填充各列数据
+		fillTableCell(table, row, 1, QString::number(i + 1), true);
+		fillTableCell(table, row, 2, "工况-" + wc.name, true);
+		fillTableCell(table, row, 3, wc.description, false);
+		fillTableCell(table, row, 4, QString::number(wc.gateOpenStart, 'f', 2), true);
+		fillTableCell(table, row, 5, QString::number(wc.gateOpenEnd, 'f', 2), true);
+		fillTableCell(table, row, 6, QString::number((int)wc.pistonOpenStart), true);
+		fillTableCell(table, row, 7, QString::number((int)wc.pistonOpenEnd), true);
+	}
+	return true;
+}
+
+void ProjectData::fillTableCell(QAxObject* table, int row, int col, const QString& text, bool centerAlign)
+{
+	QScopedPointer<QAxObject> cell(table->querySubObject("Cell(int, int)", row, col));
+	QScopedPointer<QAxObject> range(cell->querySubObject("Range"));
+	if (range.isNull()) return;
+	range->dynamicCall("SetText(const QString&)", text);
+	QScopedPointer<QAxObject> font(range->querySubObject("Font"));
+	font->setProperty("Name", "宋体");
+	font->setProperty("Size", 10);
+	font->setProperty("Bold", false);
+	cell->setProperty("VerticalAlignment", 1); // 1 = wdCellAlignVerticalCenter
+	range->querySubObject("ParagraphFormat")->setProperty("Alignment", centerAlign ? 1 : 0);
+}
+
+void ProjectData::mergeCells(QAxObject* table, int row1, int col1, int row2, int col2)
+{
+	QScopedPointer<QAxObject> cell1(table->querySubObject("Cell(int, int)", row1, col1));
+	QScopedPointer<QAxObject> cell2(table->querySubObject("Cell(int, int)", row2, col2));
+	cell1->dynamicCall("Merge(QAxObject*)", cell2->asVariant());
+}
+
+void ProjectData::setnNormalSelectionStyle(ParagraphFormat pf)
+{
+	QScopedPointer<QAxObject> paragraphFormat(_wordSelection->querySubObject("ParagraphFormat"));
+	QScopedPointer<QAxObject> font(_wordSelection->querySubObject("Font"));
+
+	switch (pf) {
+	case ParagraphFormat::TextBody: {
+		// 正文样式
+		font->setProperty("Name", "宋体");
+		font->setProperty("Size", 12);
+		font->setProperty("Bold", false);
+		paragraphFormat->setProperty("FirstLineIndent", 24);  // 首行缩进2字符（约24磅）
+		paragraphFormat->setProperty("LineSpacingRule", 5);   // 1.5倍行距（wdLineSpace1pt5）
+		paragraphFormat->setProperty("SpaceAfter", 0);
+		break;
+	}
+	case ParagraphFormat::ChartCaption: {
+		// 图表上下标
+		font->setProperty("Name", "宋体");
+		font->setProperty("Size", 10);
+		font->setProperty("Bold", false);
+		paragraphFormat->setProperty("FirstLineIndent", 0);
+		paragraphFormat->setProperty("LineSpacingRule", 0);
+		paragraphFormat->setProperty("Alignment", 1);
+		paragraphFormat->setProperty("SpaceAfter", 0);
+		// 添加标号（需配合文档自动编号或手动添加）
+		// _wordSelection->dynamicCall("TypeText(const QString&)", "图1：");
+		break;
+	}
+	case ParagraphFormat::Level1Heading: {
+		// 1级标题
+		font->setProperty("Name", "黑体");
+		font->setProperty("Size", 24);
+		font->setProperty("Bold", true);
+		paragraphFormat->setProperty("FirstLineIndent", 0);
+		paragraphFormat->setProperty("LineSpacingRule", 5);
+		paragraphFormat->setProperty("SpaceAfter", 10);  // 段后10磅
+		//applyListTemplate(1); // 级别1
+		break;
+	}
+	case ParagraphFormat::Level2Heading: {
+		// 2级标题
+		font->setProperty("Name", "黑体");
+		font->setProperty("Size", 18);
+		font->setProperty("Bold", true);
+		paragraphFormat->setProperty("FirstLineIndent", 0);
+		paragraphFormat->setProperty("LineSpacingRule", 5);
+		paragraphFormat->setProperty("SpaceAfter", 8);   // 段后8磅
+		//applyListTemplate(2); // 级别2
+		break;
+	}
+	case ParagraphFormat::Level3Heading: {
+		// 3级标题
+		font->setProperty("Name", "黑体");
+		font->setProperty("Size", 16);
+		font->setProperty("Bold", false);
+		paragraphFormat->setProperty("FirstLineIndent", 0);
+		paragraphFormat->setProperty("LineSpacingRule", 0);
+		paragraphFormat->setProperty("SpaceAfter", 0);
+		//applyListTemplate(3); // 级别3
+		break;
+	}
+	}
+}
+
+void ProjectData::addCaption(const QString& text, bool isTable)
+{
+	_wordSelection->dynamicCall("TypeText(const QString&)", isTable ? "表" : "图");
+
+	QAxObject* fields = _wordSelection->querySubObject("Fields");
+	QAxObject* range1 = _wordSelection->querySubObject("Range");
+	fields->dynamicCall("Add(QAxObject*,QVariant, QVariant, QVariant)",
+		range1->asVariant(),
+		"12",  // wdFieldSequence
+		isTable ? "table \\# \"0.\"" : "figure \\# \"0.\"",
+		true
+	);
+	fields->dynamicCall("Update()");
+
+	_wordSelection->dynamicCall("TypeText(const QString&)", text);
+	_wordSelection->dynamicCall("TypeParagraph()");
 }

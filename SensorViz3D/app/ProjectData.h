@@ -4,8 +4,19 @@
 #include <QMap>
 #include <QVector>
 #include <QObject>
+#include <qaxobject.h>
+#include <QString>
+
+namespace docx
+{
+	class Document;
+}
 
 #define WORKING_CONDITIONS_LINE_COUNT 10
+
+#define NORMAL_FS_TS_IMAGE_WIDTH 450
+#define NORMAL_FS_TS_IMAGE_HEIGHT 450
+
 struct WorkingConditions
 {
 	QString name{ "" };					//工况名称	
@@ -65,6 +76,24 @@ private:
 	// 读取脉动压力数据列表
 	bool loadFluctuationPressure(const QString& dirPath);
 
+	bool initWordDocment();
+
+	enum class ParagraphFormat {
+		TextBody,          // 正文
+		ChartCaption,      // 图表上下标
+		Level1Heading,     // 1级标题
+		Level2Heading,     // 2级标题
+		Level3Heading      // 3级标题
+	};
+	//设置通用正文、标题字体布局样式的统一接口
+	void setnNormalSelectionStyle(ParagraphFormat pf);
+	//添加表、图统一接口
+	void addCaption(const QString& text, bool isTable = false);
+private:
+	bool saveWorkingConditionsToDocx();
+	void fillTableCell(QAxObject* table, int row, int col, const QString& text, bool centerAlign);
+	void mergeCells(QAxObject* table, int row1, int col1, int row2, int col2);
+
 private:
 	QString _rootDirPath;
 	QString _rootName;
@@ -74,5 +103,9 @@ private:
 	QMap<QString, FPData> _fpData;		//脉动压力数据<工况名,数据>
 	QMap<QString, FPChart*> _fpCharts;	//脉动压力图表<工况名,图表>
 
+	QAxObject* _wordWriter{};
+	QAxObject* _wordDocument{};
+	QAxObject* _wordSelection{};
+	//QAxObject* _wordListFormats{};
 
 };

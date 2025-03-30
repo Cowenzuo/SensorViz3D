@@ -9,7 +9,7 @@ class ScalableCustomPlot : public QCustomPlot {
   void setOriginalRanges();
   void resetRanges();
   void setTitle(const QString &title);
-  void setDataSelectable(bool enable);
+  void setSelectableVisible(bool enable);
 
  protected:
   void wheelEvent(QWheelEvent *event) override;

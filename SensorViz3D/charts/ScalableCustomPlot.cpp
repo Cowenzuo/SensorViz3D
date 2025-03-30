@@ -35,7 +35,7 @@ void ScalableCustomPlot::setTitle(const QString &title) {
   }
 }
 
-void ScalableCustomPlot::setDataSelectable(bool enable) {
+void ScalableCustomPlot::setSelectableVisible(bool enable) {
   setMouseTracking(enable);
   if (enable && !tracer) {
     tracer = new QCPItemTracer(this);
@@ -82,13 +82,13 @@ void ScalableCustomPlot::mouseMoveEvent(QMouseEvent *event) {
 
 void ScalableCustomPlot::enterEvent(QEvent *event) {
   Q_UNUSED(event);
-  setDataSelectable(true);
+  setSelectableVisible(true);
   replot();
 }
 
 void ScalableCustomPlot::leaveEvent(QEvent *event) {
   Q_UNUSED(event);
-  setDataSelectable(false);
+  setSelectableVisible(false);
   replot();
 }
 
