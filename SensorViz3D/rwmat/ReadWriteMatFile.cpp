@@ -39,7 +39,16 @@ bool RWMAT::readMatFile(const QString& filepath, const QStringList& sensorNames,
 		return false;
 	}
 	fp.startTime = QDateTime::currentDateTime();
-	fp.frequency = 100;
+	mxArray* sampleFrequencyArray = matGetVariable(pmat, "SampleFrequency");  // Hz
+	if (sampleFrequencyArray)
+	{
+		char* sampleFrequencyStr = mxArrayToString(sampleFrequencyArray);
+		fp.frequency = std::stod(sampleFrequencyStr);
+	}
+	else
+	{
+		fp.frequency = 100;
+	}
 #endif  // NoExist
 
 	fp.senseCount = mxGetN(datasArray);

@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #include <QDateTime>
 #include <QMap>
@@ -31,7 +32,7 @@ struct WorkingConditions
 	double pistonOpenStart{ 0.0 };		//活塞杆开度（起始） double  单位（毫米）
 	double pistonOpenEnd{ 0.0 };		//活塞杆开度（终止） double  单位（毫米）
 };
-
+typedef QList<WorkingConditions> WorkingConditionsList;
 struct Statistics {
 	double max{ 0.0 };//最大值
 	double min{ 0.0 };//最小值
@@ -61,6 +62,7 @@ struct FPData :public RawData
 class FPChart;
 class ProjectData : public QObject
 {
+
 	Q_OBJECT
 
 public:
@@ -86,14 +88,23 @@ private:
 		Level3Heading      // 3级标题
 	};
 	//设置通用正文、标题字体布局样式的统一接口
-	void setnNormalSelectionStyle(ParagraphFormat pf);
+	void setNormalSelectionStyle(ParagraphFormat pf);
 	//添加表、图统一接口
 	void addCaption(const QString& text, bool isTable = false);
+
 private:
 	bool saveWorkingConditionsToDocx();
-	void fillTableCell(QAxObject* table, int row, int col, const QString& text, bool centerAlign);
-	void mergeCells(QAxObject* table, int row1, int col1, int row2, int col2);
+	bool saveFluctuationPressureToDocx();
 
+private:
+	QAxObject* createEigenvalueTable(WorkingConditionsList wcs, const QStringList& sensorsNames);
+	QAxObject* createSegEigenvalueTable(WorkingConditions wc, QStringList& wcsSeg, const QStringList& sensorsNames);
+	void fillTableDataCell(QAxObject* table, int row, int col, const QString& text, bool centerAlign);
+	void fillTableHeaderCell(QAxObject* table, int row, int col, const QString& text);
+	void mergeCells(QAxObject* table, int row1, int col1, int row2, int col2);
+	void skipTable();
+
+	void insertImage(const QString& imagePath, int width, int height);
 private:
 	QString _rootDirPath;
 	QString _rootName;
@@ -106,6 +117,6 @@ private:
 	QAxObject* _wordWriter{};
 	QAxObject* _wordDocument{};
 	QAxObject* _wordSelection{};
-	//QAxObject* _wordListFormats{};
-
 };
+
+bool numericCompare(const QString& a, const QString& b);

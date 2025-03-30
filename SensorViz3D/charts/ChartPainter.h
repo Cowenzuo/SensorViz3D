@@ -22,6 +22,17 @@ private:
 	QString _titleUnit{ "" };
 };
 
+class MagChart {
+public:
+	static ScalableCustomPlot* paintMagChart(
+		const QString& title,
+		const QString& xlabel,
+		const QString& ylabel,
+		const QStringList& wcsnames,
+		const QStringList& sensornames,
+		const QMap<QString, QVector<double>>& values
+	);
+};
 class FPChart : public BaseChart
 {
 public:
@@ -31,4 +42,6 @@ public:
 	void setData(const FPData& data);
 
 	void save(const QString& dirpath, int width, int height);
+	void saveSeg(const QString& dirpath, int width, int height);
 };
+
