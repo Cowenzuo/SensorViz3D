@@ -52,16 +52,4 @@ namespace PSDA {
 		double maxFreqRatio = 0.5,
 		double outlierThreshold = 3.0
 	);
-	// 辅助函数：窗函数计算
-	bool calculateWindowFunction(
-		QVector<double>& window,
-		double& windowEnergy,
-		int windowType
-	);
-	// 辅助函数：异常值处理
-	void processOutliers(
-		QVector<double>& segmentPxx,
-		double threshold,
-		double minValidValue = 0.0
-	);
 } // namespace PSDA

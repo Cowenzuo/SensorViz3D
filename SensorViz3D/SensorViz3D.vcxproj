@@ -66,13 +66,14 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)3rdprty\include;$(MatLabInstallDir)\R2024b\extern\include;$(OSGInstallDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)3rdprty\include;$(MatLabInstallDir)\R2024b\extern\include;$(OSGInstallDir)\include;$(PythonInstallDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>QCUSTOMPLOT_USE_OPENGL;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)3rdprty\lib;$(MatLabInstallDir)\R2024b\extern\lib\win64\microsoft;$(OSGInstallDir)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>osg.lib;osgDB.lib;osgGA.lib;osgViewer.lib;osgQOpenGL.lib;OpenThreads.lib;opengl32.lib;osgUtil.lib;dwmapi.lib;libmat.lib;libmx.lib;mclmcr.lib;mclmcrrt.lib;qcustomplot2.lib;libfftw3-3.lib;libfftw3f-3.lib;libfftw3l-3.lib;QXlsxQt5.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)3rdprty\lib;$(MatLabInstallDir)\R2024b\extern\lib\win64\microsoft;$(OSGInstallDir)\lib;$(PythonInstallDir)\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>osg.lib;osgDB.lib;osgGA.lib;osgViewer.lib;osgQOpenGL.lib;OpenThreads.lib;opengl32.lib;osgUtil.lib;dwmapi.lib;libmat.lib;libmx.lib;mclmcr.lib;mclmcrrt.lib;qcustomplot2.lib;libfftw3-3.lib;libfftw3f-3.lib;libfftw3l-3.lib;QXlsxQt5.lib;minidocx.lib;python3.lib;python312.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -107,7 +108,7 @@
     <ClCompile Include="app\ProjectData.cpp" />
     <ClCompile Include="charts\ChartPainter.cpp" />
     <ClCompile Include="charts\ScalableCustomPlot.cpp" />
-    <ClCompile Include="PSDAnalyzer.cpp" />
+    <ClCompile Include="charts\PSDAnalyzer.cpp" />
     <ClCompile Include="rwmat\ReadWriteMatFile.cpp" />
     <QtRcc Include="SensorViz3D.qrc" />
     <QtUic Include="app\MainWindow.ui" />
@@ -121,7 +122,7 @@
   <ItemGroup>
     <ClInclude Include="charts\ChartPainter.h" />
     <ClInclude Include="charts\ScalableCustomPlot.h" />
-    <ClInclude Include="PSDAnalyzer.h" />
+    <ClInclude Include="charts\PSDAnalyzer.h" />
     <ClInclude Include="rwmat\ReadWriteMatFile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

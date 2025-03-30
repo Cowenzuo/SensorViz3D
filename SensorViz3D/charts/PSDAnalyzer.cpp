@@ -66,15 +66,18 @@ int PSDA::preprocessData(
 			min = qMin(min, residual);
 			max = qMax(max, residual);
 		}
-		//fluctuation.append(residual);
+
 		const double dev = segmentStdDevs[seg];
 		if (dev > 0 && std::abs(residual) <= sigmaThreshold * dev) {
 			fluctuation.append(residual);
 		}
 		else
 		{
-			fluctuation.append(0.0);// ??添加0值可能影响后续分析
+			// ??添加0值可能影响后续分析但是看起来趋势更好了？
+			fluctuation.append(0.0);
 		}
+
+		//fluctuation.append(residual);
 	}
 
 	return fluctuation.size();
@@ -170,7 +173,10 @@ void PSDA::calculatePowerSpectralDensity(
 	for (int i = 0; i < pxx.size(); ++i) {
 		pxx[i] *= 13000 / numSegments;  // TODO:???没来由的放大13000倍就可以了
 	}
+
+	// 去除直流分量
 	pxx[0] = 0.0;
+
 	// 限制频率范围
 	int maxFreqIndex = maxFreqRatio * nfft;
 	if (maxFreqIndex >= freqs.size()) {
@@ -178,109 +184,4 @@ void PSDA::calculatePowerSpectralDensity(
 	}
 	freqs.resize(maxFreqIndex + 1);
 	pxx.resize(maxFreqIndex + 1);
-}
-
-bool PSDA::calculateWindowFunction(QVector<double>& window, double& windowEnergy, int windowType)
-{
-	const int n = window.size();
-	if (n <= 0) {
-		qWarning() << "Window size must be positive";
-		return false;
-	}
-
-	// 校验窗类型
-	if (windowType < 0 || windowType > 2) {
-		qWarning() << "Invalid window type, using Hanning as default";
-		windowType = 0;
-	}
-
-	double windowSum = 0.0;
-	const bool isFlatTop = (windowType == 2);
-	const double norm = (n > 1) ? 1.0 / (n - 1) : 1.0; // 防除零
-
-	// 预计算公共参数
-	double cos1, cos2, cos3, cos4;
-	double* windowPtr = window.data();
-
-	for (int i = 0; i < n; ++i) {
-		const double theta = 2 * M_PI * i * norm;
-
-		switch (windowType) {
-		case 1: // 海明窗
-			*windowPtr = 0.54 - 0.46 * cos(theta);
-			break;
-
-		case 2: // 平顶窗(优化计算顺序)
-			cos1 = cos(theta);
-			cos2 = cos(2 * theta);
-			cos3 = cos(3 * theta);
-			cos4 = cos(4 * theta);
-			*windowPtr = 0.21557895
-				- 0.41663158 * cos1
-				+ 0.277263158 * cos2
-				- 0.083578947 * cos3
-				+ 0.006947368 * cos4;
-			break;
-
-		default: // 汉宁窗
-			*windowPtr = 0.5 * (1 - cos(theta));
-		}
-
-		windowSum += (*windowPtr) * (*windowPtr);
-		++windowPtr;
-	}
-	windowEnergy = sqrt(windowSum);
-	return true;
-}
-
-// 辅助函数：异常值处理
-void PSDA::processOutliers(
-	QVector<double>& segmentPxx,
-	double threshold,
-	double minValidValue /*= 0.0*/
-)
-{
-	const int n = segmentPxx.size();
-	if (n < 5) return;  // 数据太少不处理
-
-	// 1. 快速选择算法计算分位数（O(n)）
-	QVector<double> copy = segmentPxx;
-	const int q1_pos = n / 4;
-	const int q3_pos = 3 * n / 4;
-
-	std::nth_element(copy.begin(), copy.begin() + q1_pos, copy.end());
-	const double q1 = copy[q1_pos];
-
-	std::nth_element(copy.begin(), copy.begin() + q3_pos, copy.end());
-	const double q3 = copy[q3_pos];
-
-	const double iqr = q3 - q1;
-	const double lowerBound = q1 - threshold * iqr;
-	const double upperBound = q3 + threshold * iqr;
-
-	// 2. 物理约束检查
-	const double actualLowerBound = qMax(lowerBound, minValidValue);
-
-	// 3. 异常值替换（带边缘处理）
-	for (int i = 0; i < n; ++i) {
-		if (segmentPxx[i] < actualLowerBound || segmentPxx[i] > upperBound) {
-			// 边界处理
-			if (i == 0) {
-				segmentPxx[i] = segmentPxx[i + 1];  // 只使用后邻点
-			}
-			else if (i == n - 1) {
-				segmentPxx[i] = segmentPxx[i - 1];  // 只使用前邻点
-			}
-			else {
-				// 中值滤波避免连续异常影响
-				const double median = std::min(segmentPxx[i - 1],
-					std::max(segmentPxx[i + 1],
-						(segmentPxx[i - 1] + segmentPxx[i + 1]) / 2));
-				segmentPxx[i] = median;
-			}
-
-			// 确保不违反物理约束
-			segmentPxx[i] = qMax(segmentPxx[i], minValidValue);
-		}
-	}
 }

@@ -5,8 +5,13 @@
 #include <QFile>
 #include <QFileInfo>
 
+
+#include "minidocx.hpp"
+
 #include "rwmat/ReadWriteMatFile.h"
 #include "charts/ChartPainter.h"
+
+
 ProjectData::ProjectData(QObject* parent)
 	: QObject(parent)
 {
@@ -77,6 +82,9 @@ bool ProjectData::loadDataPackage(const QString& dirPath)
 	return true;
 }
 
+// Python 异常检查宏
+#define PY_CHECK() if (PyErr_Occurred()) { PyErr_Print(); return false; }
+
 bool ProjectData::save(const QString& dirPath)
 {
 	QDir exportRootDir(dirPath + "/export");
@@ -84,19 +92,61 @@ bool ProjectData::save(const QString& dirPath)
 	{
 		exportRootDir.mkpath(".");
 	}
+
+	auto filepath = QString("%1/export/%2.docx").arg(dirPath, _rootName);
+
+	//docx::Document* doc = new docx::Document;
+	//saveWorkingConditionsToDocx(doc);
+
+	//Py_Initialize();  // 初始化 Python 解释器
+	// 导入pyansys模块
+	/*auto docxModule = PyImport_ImportModule("docx");
+	if (!docxModule) {
+		PyErr_Print();
+		std::cerr << "Failed to load 'docx'" << std::endl;
+		return false;
+	}
+	PyObject* pModule = PyImport_ImportModule("docx");
+	if (!pModule) { PY_CHECK(); }
+
+	PyObject* pDocxModule = PyImport_ImportModule("docx.document");
+	PyObject* pStylesModule = PyImport_ImportModule("docx.shared");
+	PyObject* pEnumModule = PyImport_ImportModule("docx.enum.text");
+	if (!pDocxModule || !pStylesModule || !pEnumModule) { PY_CHECK(); }*/
+
+	//saveWorkingConditionsToDocx(pDoc);
 	// 遍历_fpCharts调用save
 	for (auto iter = _fpCharts.begin(); iter != _fpCharts.end(); ++iter)
 	{
+		//构建一个文档对象
 		auto savedir = exportRootDir.absolutePath() + "/" + iter.key() + "/脉动压力";
 		QDir savedirpath(savedir);
 		if (!savedirpath.exists())
 		{
 			savedirpath.mkpath(".");
 		}
-		iter.value()->save(savedir, 450, 170);
+		iter.value()->save(nullptr, savedir, 450, 170);
+		//iter.value()->save(doc, savedir, 450, 170);
 	}
+	//如果filepath文件存在，则先删除
+	QFile docFile(filepath);
+	if (docFile.exists()) {
+		if (!docFile.remove()) {
+			qDebug() << "Failed to remove existing file: " << filepath;
+			return false;
+		}
+	}
+	//doc->Save(filepath);
+	//delete doc;
 
-	return false;
+	saveWorkingConditionsToDocx(filepath);
+	//auto save = PyObject_CallMethod(pDoc, "save", "s", filepath.toStdString().c_str());
+
+	//Py_XDECREF(pDoc);
+	//Py_XDECREF(documentClass);
+	//Py_XDECREF(docxModule);
+	//Py_Finalize();  // 关闭 Python 解释器
+	return true;
 }
 
 bool ProjectData::loadWorkingConditions(const QString& dirPath)
@@ -330,11 +380,148 @@ bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 			fp.segStatistics.append(segStatistics);
 		}
 		// 生成脉动压力时序频谱图
-		FPChart* chart = new FPChart();
+		FPChart* chart = new FPChart("脉动压力", "kPa");
 		chart->setData(fp);
 		_fpCharts[wcName] = chart;
 		_fpData[wcName] = fp;
 	}
+
+	return true;
+}
+
+bool ProjectData::saveWorkingConditionsToDocx(docx::Document* doc)
+{
+	docx::Paragraph pWc = doc->AppendParagraph();
+	pWc.SetAlignment(docx::Paragraph::Alignment::Left);
+	auto title = pWc.AppendRun("工况");
+	title.SetFontSize(FIRST_LEVEL_TITILE_FONT_SIZE);
+	title.SetFont(FIRST_LEVEL_TITILE_FONT);
+	title.SetFontStyle(docx::Run::Bold);
+
+	docx::Paragraph pWcList = doc->AppendParagraph();
+	pWcList.SetAlignment(docx::Paragraph::Alignment::Centered);
+	auto tabtletitle = pWcList.AppendRun("工况列表");
+	tabtletitle.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+	tabtletitle.SetFont(NORMAL_TEXT_FONT);
+
+	auto wcsize = _workingConditions.count();
+	QStringList header0{ "序号", "名称","描述","闸门开度","闸门开度","活塞杆开度","活塞杆开度" };
+	QStringList header1{ "序号", "名称","描述","起始","终止","起始","终止" };
+
+	auto tbl = doc->AppendTable(wcsize + 2, header0.size());
+	tbl.SetAlignment(docx::Table::Alignment::Centered);
+
+
+	for (int i = 0; i < header0.size(); i++)
+	{
+		auto containStr = header0[i].toUtf8().data();
+		auto cell = tbl.GetCell(0, i);
+		cell.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		auto cellp = cell.FirstParagraph();
+		cellp.SetAlignment(docx::Paragraph::Alignment::Centered);
+		auto cellrun = cellp.AppendRun(containStr);
+		cellrun.SetFontSize(THIRD_LEVEL_TITILE_FONT_SIZE);
+		cellrun.SetFont(NORMAL_TEXT_FONT);
+		cellrun.SetFontStyle(docx::Run::Bold);
+	}
+
+	for (int i = 0; i < header1.size(); i++)
+	{
+		auto containStr = header1[i].toUtf8().data();
+		auto cell = tbl.GetCell(1, i);
+		cell.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		auto cellp = cell.FirstParagraph();
+		cellp.SetAlignment(docx::Paragraph::Alignment::Centered);
+		auto cellrun = cellp.AppendRun(containStr);
+		cellrun.SetFontSize(THIRD_LEVEL_TITILE_FONT_SIZE);
+		cellrun.SetFont(NORMAL_TEXT_FONT);
+		cellrun.SetFontStyle(docx::Run::Bold);
+	}
+
+	tbl.MergeCells(tbl.GetCell(0, 0), tbl.GetCell(1, 0));
+	tbl.MergeCells(tbl.GetCell(0, 1), tbl.GetCell(1, 1));
+	tbl.MergeCells(tbl.GetCell(0, 2), tbl.GetCell(1, 2));
+	tbl.MergeCells(tbl.GetCell(0, 3), tbl.GetCell(0, 4));
+	tbl.MergeCells(tbl.GetCell(0, 5), tbl.GetCell(0, 6));
+
+	QList<QString> keys = _workingConditions.keys();
+	//对keys进行排序，转为数字
+	auto numericCompare = [](const QString& a, const QString& b) -> bool {
+		bool ok1, ok2;
+		int numA = a.toInt(&ok1), numB = b.toInt(&ok2);
+		if (ok1 && ok2)
+			return numA < numB;
+		else if (ok1)
+			return true;
+		else if (ok2)
+			return false;
+		else
+			return a < b;
+		};
+	std::sort(keys.begin(), keys.end(), numericCompare);
+
+	for (int i = 0; i < wcsize; i++)
+	{
+		auto wc = _workingConditions[keys[i]];
+		auto row = i + 2;
+		auto cell0 = tbl.GetCell(row, 0);
+		auto cell1 = tbl.GetCell(row, 1);
+		auto cell2 = tbl.GetCell(row, 2);
+		auto cell3 = tbl.GetCell(row, 3);
+		auto cell4 = tbl.GetCell(row, 4);
+		auto cell5 = tbl.GetCell(row, 5);
+		auto cell6 = tbl.GetCell(row, 6);
+		cell0.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell1.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell2.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell3.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell4.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell5.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		cell6.SetVerticalAlignment(docx::TableCell::Alignment::Center);
+		auto cellp0 = cell0.FirstParagraph();
+		auto cellp1 = cell1.FirstParagraph();
+		auto cellp2 = cell2.FirstParagraph();
+		auto cellp3 = cell3.FirstParagraph();
+		auto cellp4 = cell4.FirstParagraph();
+		auto cellp5 = cell5.FirstParagraph();
+		auto cellp6 = cell6.FirstParagraph();
+		cellp0.SetAlignment(docx::Paragraph::Alignment::Centered);
+		cellp1.SetAlignment(docx::Paragraph::Alignment::Centered);
+		cellp2.SetAlignment(docx::Paragraph::Alignment::Left);
+		cellp3.SetAlignment(docx::Paragraph::Alignment::Centered);
+		cellp4.SetAlignment(docx::Paragraph::Alignment::Centered);
+		cellp5.SetAlignment(docx::Paragraph::Alignment::Centered);
+		cellp6.SetAlignment(docx::Paragraph::Alignment::Centered);
+		auto runcell0 = cellp0.AppendRun(QString::number(i + 1).toUtf8().data());
+		auto runcell1 = cellp1.AppendRun(QString("工况-" + wc.name).toUtf8().data());
+		auto runcell2 = cellp2.AppendRun(wc.description.toUtf8().data());
+		auto runcell3 = cellp3.AppendRun(QString::number(wc.gateOpenStart, 'f', 2).toUtf8().data());
+		auto runcell4 = cellp4.AppendRun(QString::number(wc.gateOpenEnd, 'f', 2).toUtf8().data());
+		auto runcell5 = cellp5.AppendRun(QString::number((int)wc.pistonOpenStart).toUtf8().data());
+		auto runcell6 = cellp6.AppendRun(QString::number((int)wc.pistonOpenEnd).toUtf8().data());
+		runcell0.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell1.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell2.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell3.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell4.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell5.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell6.SetFontSize(NORMAL_TEXT_FONT_SIZE);
+		runcell0.SetFont(NORMAL_TEXT_FONT);
+		runcell1.SetFont(NORMAL_TEXT_FONT);
+		runcell2.SetFont(NORMAL_TEXT_FONT);
+		runcell3.SetFont(NORMAL_TEXT_FONT);
+		runcell4.SetFont(NORMAL_TEXT_FONT);
+		runcell5.SetFont(NORMAL_TEXT_FONT);
+		runcell6.SetFont(NORMAL_TEXT_FONT);
+	}
+
+	return true;
+}
+
+bool ProjectData::saveWorkingConditionsToDocx(PyObject* pDoc)
+{
+	PyObject* pParagraph = PyObject_CallMethod(pDoc, "add_paragraph", "s", "工况");
+	PyObject_CallMethod(pParagraph, "add_run", "s", "工况");
 
 	return true;
 }
