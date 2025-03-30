@@ -4,7 +4,13 @@
 #include <matrix.h>
 
 
-bool RWMAT::readMatFile(const QString& filepath, const QStringList& sensorNames, RawData& fp)
+bool RWMAT::readMatFile(
+	const QString& filepath,
+	const QStringList& sensorNames,
+	const QStringList& sensorValid,
+	int singleDataCols,
+	RawData& fp
+)
 {
 	MATFile* pmat = matOpen(filepath.toStdString().c_str(), "r");
 	if (pmat == nullptr) {
@@ -51,35 +57,52 @@ bool RWMAT::readMatFile(const QString& filepath, const QStringList& sensorNames,
 	}
 #endif  // NoExist
 
-	fp.senseCount = mxGetN(datasArray);
-	if (fp.senseCount != sensorNames.count())
+	auto valueCols = mxGetN(datasArray);
+	if (valueCols != sensorNames.count() * singleDataCols)
 	{
 		return false;
 	}
-	fp.dataCount = mxGetM(datasArray);
+	fp.senseCount = sensorNames.count();
+	auto valueRows = mxGetM(datasArray);
+	auto removeSize = fp.frequency * 5;//前后各扔掉5秒
+	fp.dataCount = valueRows - removeSize * 2;
+
 	double* datas = mxGetPr(datasArray);
-	for (auto col = 0; col < fp.senseCount; col++) {
+	for (auto seq = 0; seq < sensorNames.count(); ++seq) {
+		if (sensorValid[seq] != "1")
+		{
+			fp.senseCount--;
+			continue;
+		}
+
 		double* data = new double[fp.dataCount];
-		for (auto row = 0; row < fp.dataCount; row++) {
-			data[row] = datas[col * fp.dataCount + row];
+		for (auto row = removeSize; row < valueRows - removeSize; row++) {
+			double dataValue = 0.0;
+			for (auto col = 0; col < singleDataCols; col++)
+			{
+				dataValue += pow(datas[(seq * singleDataCols + col) * valueRows + row], 2);
+			}
+			int newseq = row - removeSize;
+			data[newseq] = sqrt(dataValue);
+
 			//统计最大值、最小值、均方根
 			if (row == 0) {
-				fp.statistics[sensorNames[col]].max = data[row];
-				fp.statistics[sensorNames[col]].min = data[row];
-				fp.statistics[sensorNames[col]].rms = data[row] * data[row];
+				fp.statistics[sensorNames[seq]].max = data[newseq];
+				fp.statistics[sensorNames[seq]].min = data[newseq];
+				fp.statistics[sensorNames[seq]].rms = data[newseq] * data[newseq];
 			}
 			else {
-				if (data[row] > fp.statistics[sensorNames[col]].max) {
-					fp.statistics[sensorNames[col]].max = data[row];
+				if (data[newseq] > fp.statistics[sensorNames[seq]].max) {
+					fp.statistics[sensorNames[seq]].max = data[newseq];
 				}
-				if (data[row] < fp.statistics[sensorNames[col]].min) {
-					fp.statistics[sensorNames[col]].min = data[row];
+				if (data[newseq] < fp.statistics[sensorNames[seq]].min) {
+					fp.statistics[sensorNames[seq]].min = data[newseq];
 				}
-				fp.statistics[sensorNames[col]].rms += data[row] * data[row];
+				fp.statistics[sensorNames[seq]].rms += data[newseq] * data[newseq];
 			}
 		}
-		fp.statistics[sensorNames[col]].rms = sqrt(fp.statistics[sensorNames[col]].rms / fp.dataCount);
-		fp.data[sensorNames[col]] = data;
+		fp.statistics[sensorNames[seq]].rms = sqrt(fp.statistics[sensorNames[seq]].rms / fp.dataCount);
+		fp.data[sensorNames[seq]] = data;
 	}
 
 	// 释放资源
@@ -90,6 +113,10 @@ bool RWMAT::readMatFile(const QString& filepath, const QStringList& sensorNames,
 	mxDestroyArray(sampleFrequencyArray);
 	mxDestroyArray(sampleStartTimeArray);
 #endif  // NoExist
+	if (sampleFrequencyArray)
+	{
+		mxDestroyArray(sampleFrequencyArray);
+	}
 	mxDestroyArray(datasArray);
 	matClose(pmat);
 

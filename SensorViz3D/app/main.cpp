@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 
 	//just for test
 	ProjectData projectData(nullptr);
-	projectData.loadDataPackage("../data/2025_03_23_Experiment");
-	projectData.save("../data/2025_03_23_Experiment");
+	projectData.loadDataPackage("../data/2025_03_22_Experiment");
+	projectData.save("../data/2025_03_22_Experiment");
 	return a.exec();
 }

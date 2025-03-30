@@ -9,7 +9,11 @@ public:
 	virtual ~BaseChart() {}
 
 	void processSensorData(const QString& sensorName, double* sensorData, int dataCount, double frequency, QMap<QString, ScalableCustomPlot*>& timeSeriesMap, QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap);
+	
+	void setData(const ExtraData& exdata);
 
+	void save(const QString& dirpath, int width, int height);
+	void saveSeg(const QString& dirpath, int width, int height);
 public:
 	QMap<QString, ScalableCustomPlot* >_imgTimeSeries{};		//时域过程图
 	QMap<QString, ScalableCustomPlot* >_imgFrequencySpectrum{};	//频谱分析图
@@ -33,15 +37,3 @@ public:
 		const QMap<QString, QVector<double>>& values
 	);
 };
-class FPChart : public BaseChart
-{
-public:
-	FPChart(const QString& name, const QString& unit) : BaseChart(name, unit) {}
-	virtual ~FPChart() {}
-
-	void setData(const FPData& data);
-
-	void save(const QString& dirpath, int width, int height);
-	void saveSeg(const QString& dirpath, int width, int height);
-};
-

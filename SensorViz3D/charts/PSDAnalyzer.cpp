@@ -22,7 +22,7 @@ int PSDA::preprocessData(
 		return -1;
 	}
 	// 计算完整段数,向上取整
-	const int numSegments = (datacount + order - 1) / order;
+	const int numSegments = (datacount + order) / order - 1;
 	if (numSegments == 0) {
 		qDebug() << "Data size too small for segmentation";
 		return 0;

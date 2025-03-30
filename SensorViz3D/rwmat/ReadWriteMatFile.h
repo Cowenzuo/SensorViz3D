@@ -4,8 +4,13 @@
 
 namespace RWMAT
 {
-	//FPData
-	bool readMatFile(const QString& filepath, const QStringList& sensorNames, RawData& fp);
+	//ExtraData
+	bool readMatFile(
+		const QString& filepath,
+		const QStringList& sensorNames,
+		const QStringList& sensorValid,
+		int singleDataCols,
+		RawData& fp);
 
 };
 

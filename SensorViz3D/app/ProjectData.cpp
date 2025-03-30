@@ -28,60 +28,148 @@ bool ProjectData::loadDataPackage(const QString& dirPath)
 		qDebug() << "Directory not exists: " << dirPath;
 		return false;
 	}
+	// 保存根目录信息
+	_rootName = QFileInfo(dirPath).baseName();
+	_rootDirPath = QDir(dirPath).absolutePath();
 
 	// 获取所有子文件夹
 	QStringList folders = rootDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 
-	// 匹配“工况列表”子文件夹并加载工况
-	QString workingConditionsFolder;
-	for (const QString& folder : folders)
 	{
-		if (folder.contains("工况列表"))
+		QString workingConditionsFolder;
+		for (const QString& folder : folders)
 		{
-			workingConditionsFolder = folder;
-			break;
+			if (folder == "工况列表")
+			{
+				workingConditionsFolder = folder;
+				break;
+			}
+		}
+		if (workingConditionsFolder.isEmpty())
+		{
+			qDebug() << "No working conditions folder found.";
+			return false;
+		}
+		if (!loadWorkingConditions(rootDir.filePath(workingConditionsFolder)))
+		{
+			qDebug() << "Failed to load working conditions.";
+			return false;
 		}
 	}
-	if (workingConditionsFolder.isEmpty())
-	{
-		qDebug() << "No working conditions folder found.";
-		return false;
-	}
-	if (!loadWorkingConditions(rootDir.filePath(workingConditionsFolder)))
-	{
-		qDebug() << "Failed to load working conditions.";
-		return false;
-	}
 
-	// 匹配“脉动压力”子文件夹并加载脉动压力
-	QString fluctuationPressureFolder;
-	for (const QString& folder : folders)
 	{
-		if (folder.contains("脉动压力"))
+		QString fpFolder;
+		for (const QString& folder : folders)
 		{
-			fluctuationPressureFolder = folder;
-			break;
+			if (folder == "脉动压力")
+			{
+				fpFolder = folder;
+				break;
+			}
+		}
+		if (fpFolder.isEmpty())
+		{
+			qDebug() << "No fluctuation pressure folder found.";
+			return false;
+		}
+		if (!loadResFile(rootDir.filePath(fpFolder), ResType::FP))
+		{
+			qDebug() << "Failed to load fluctuation pressure.";
+			return false;
 		}
 	}
-	if (fluctuationPressureFolder.isEmpty())
+
 	{
-		qDebug() << "No fluctuation pressure folder found.";
-		return false;
-	}
-	if (!loadFluctuationPressure(rootDir.filePath(fluctuationPressureFolder)))
-	{
-		qDebug() << "Failed to load fluctuation pressure.";
-		return false;
+		QString vaFolder;
+		for (const QString& folder : folders)
+		{
+			if (folder == "加速度")
+			{
+				vaFolder = folder;
+				break;
+			}
+		}
+		if (vaFolder.isEmpty())
+		{
+			qDebug() << "No vibration acceleration folder found.";
+			return false;
+		}
+		if (!loadResFile(rootDir.filePath(vaFolder), ResType::VA))
+		{
+			qDebug() << "Failed to load vibration acceleration.";
+			return false;
+		}
 	}
 
-	// 保存根目录信息
-	_rootName = QFileInfo(dirPath).baseName();
-	_rootDirPath = QDir(dirPath).absolutePath();
+	{
+		QString vdFolder;
+		for (const QString& folder : folders)
+		{
+			if (folder == "位移")
+			{
+				vdFolder = folder;
+				break;
+			}
+		}
+		if (vdFolder.isEmpty())
+		{
+			qDebug() << "No vibration displacement folder found.";
+			return false;
+		}
+		if (!loadResFile(rootDir.filePath(vdFolder), ResType::VD))
+		{
+			qDebug() << "Failed to load vibration displacement.";
+			return false;
+		}
+	}
+
+	{
+		QString strainFolder;
+		for (const QString& folder : folders)
+		{
+			if (folder == "应变")
+			{
+				strainFolder = folder;
+				break;
+			}
+		}
+		if (strainFolder.isEmpty())
+		{
+			qDebug() << "No straint folder found.";
+			return false;
+		}
+		if (!loadResFile(rootDir.filePath(strainFolder), ResType::Strain))
+		{
+			qDebug() << "Failed to load strain.";
+			return false;
+		}
+	}
+
+	{
+		QString opFolder;
+		for (const QString& folder : folders)
+		{
+			if (folder == "油压")
+			{
+				opFolder = folder;
+				break;
+			}
+		}
+		if (opFolder.isEmpty())
+		{
+			qDebug() << "No oil pressure folder found.";
+			return false;
+		}
+		if (!loadResFile(rootDir.filePath(opFolder), ResType::OP))
+		{
+			qDebug() << "Failed to load oil pressure.";
+			return false;
+		}
+	}
+
+
 	return true;
 }
-
-// Python 异常检查宏
-#define PY_CHECK() if (PyErr_Occurred()) { PyErr_Print(); return false; }
 
 bool ProjectData::save(const QString& dirPath)
 {
@@ -97,19 +185,11 @@ bool ProjectData::save(const QString& dirPath)
 	saveWorkingConditionsToDocx();
 
 	saveFluctuationPressureToDocx();
-	//// 遍历_fpCharts调用save
-	//for (auto iter = _fpCharts.begin(); iter != _fpCharts.end(); ++iter)
-	//{
-	//	//构建一个文档对象
-	//	auto savedir = exportRootDir.absolutePath() + "/" + iter.key() + "/脉动压力";
-	//	QDir savedirpath(savedir);
-	//	if (!savedirpath.exists())
-	//	{
-	//		savedirpath.mkpath(".");
-	//	}
-	//	iter.value()->save(savedir, 450, 170);
-	//	//iter.value()->save(doc, savedir, 450, 170);
-	//}
+	saveVibrationAccelerationToDocx();
+	saveVibrationDisplacementToDocx();
+	saveStrainToDocx();
+	saveOilPressureToDocx();
+
 	//如果filepath文件存在，则先删除
 	QFile docFile(filepath);
 	if (docFile.exists()) {
@@ -288,7 +368,7 @@ bool ProjectData::loadWorkingConditions(const QString& dirPath)
 	return true;
 }
 
-bool ProjectData::loadFluctuationPressure(const QString& dirPath)
+bool ProjectData::loadResFile(const QString& dirPath, ResType type)
 {
 	//固定读取当前文件夹下的一个名为settings文件，内容为传感器名称
 	QFile file(dirPath + "/settings");
@@ -308,8 +388,8 @@ bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 	file.close();
 
 
-	QDir fpDir(dirPath);
-	QStringList matFiles = fpDir.entryList(QStringList() << "*.mat", QDir::Files);
+	QDir resDir(dirPath);
+	QStringList matFiles = resDir.entryList(QStringList() << "*.mat", QDir::Files);
 	foreach(const QString & matFile, matFiles) {
 		//通过文件名在工况列表中查找对应的工况
 		QString wcName = QFileInfo(matFile).baseName();
@@ -317,21 +397,44 @@ bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 			continue;
 		}
 		qDebug() << "Loading mat file: " << matFile;
-		FPData fp;
-		fp.wcname = wcName;
-		if (!RWMAT::readMatFile(fpDir.filePath(matFile), sensorNames, fp))
+		ExtraData exdata;
+		exdata.wcname = wcName;
+		int singleDataCols = 1;
+		switch (type)
+		{
+		case ProjectData::ResType::FP:
+			singleDataCols = 1;
+			break;
+		case ProjectData::ResType::VA:
+			singleDataCols = 3;
+			break;
+		case ProjectData::ResType::VD:
+			singleDataCols = 3;
+			break;
+		case ProjectData::ResType::Strain:
+			singleDataCols = 1;
+			break;
+		case ProjectData::ResType::OP:
+			singleDataCols = 1;
+			break;
+		default:
+			break;
+		}
+		if (!RWMAT::readMatFile(resDir.filePath(matFile), sensorNames, sensorValid, singleDataCols, exdata))
 		{
 			qWarning() << "Failed to load mat file: " << matFile;
 			continue;
 		}
 
-		const int segmentSize = fp.dataCount / SEGMENT_COUNT;
+		exdata.hasSegData = segwcnames.contains(wcName);
+
+		const int segmentSize = exdata.dataCount / SEGMENT_COUNT;
 		if (segmentSize < 1) {
 			qWarning() << "Data count too small for segmentation in file:" << matFile;
 			continue;
 		}
 		const int offset = qMax(0, (segmentSize / 2) - 1);  // 确保offset非负
-		fp.dataCountEach = offset;
+		exdata.dataCountEach = offset;
 
 		for (int i = 0; i < SEGMENT_COUNT - 1; i++)
 		{
@@ -339,33 +442,83 @@ bool ProjectData::loadFluctuationPressure(const QString& dirPath)
 			QMap<QString, Statistics>segStatistics{};
 			for (auto& sensorName : sensorNames)
 			{
+				if (!exdata.data.contains(sensorName))
+				{
+					continue;
+				}
 				double* data = new double[segmentSize];
 				for (int j = 0; j < segmentSize; j++)
 				{
-					data[j] = fp.data[sensorName][i * segmentSize + j + offset];
-					//统计最大值、最小值、均方根
-					if (j == 0) {
-						segStatistics[sensorName].max = data[j];
-						segStatistics[sensorName].min = data[j];
-						segStatistics[sensorName].rms = data[j] * data[j];
-					}
-					else {
-						segStatistics[sensorName].max = qMax(segStatistics[sensorName].max, data[j]);
-						segStatistics[sensorName].min = qMin(segStatistics[sensorName].min, data[j]);
-						segStatistics[sensorName].rms += data[j] * data[j];
+					data[j] = exdata.data[sensorName][i * segmentSize + j + offset];
+					if (exdata.hasSegData)
+					{
+						//统计最大值、最小值、均方根
+						if (j == 0) {
+							segStatistics[sensorName].max = data[j];
+							segStatistics[sensorName].min = data[j];
+							segStatistics[sensorName].rms = data[j] * data[j];
+						}
+						else {
+							segStatistics[sensorName].max = qMax(segStatistics[sensorName].max, data[j]);
+							segStatistics[sensorName].min = qMin(segStatistics[sensorName].min, data[j]);
+							segStatistics[sensorName].rms += data[j] * data[j];
+						}
 					}
 				}
-				segStatistics[sensorName].rms = sqrt(segStatistics[sensorName].rms / segmentSize);
+				if (exdata.hasSegData)
+					segStatistics[sensorName].rms = sqrt(segStatistics[sensorName].rms / segmentSize);
 				segData[sensorName] = data;
 			}
-			fp.segData.append(segData);
-			fp.segStatistics.append(segStatistics);
+			exdata.segData.append(segData);
+			if (exdata.hasSegData)
+				exdata.segStatistics.append(segStatistics);
 		}
-		// 生成脉动压力时序频谱图
-		FPChart* chart = new FPChart("脉动压力", "kPa");
-		chart->setData(fp);
-		_fpCharts[wcName] = chart;
-		_fpData[wcName] = fp;
+		switch (type)
+		{
+		case ProjectData::ResType::FP:
+		{
+			BaseChart* chart = new BaseChart("脉动压力", "kPa");
+			chart->setData(exdata);
+			_fpCharts[wcName] = chart;
+			_fpData[wcName] = exdata;
+			break;
+		}
+		case ProjectData::ResType::VA:
+		{
+			BaseChart* chart = new BaseChart("振动加速度", "m/s²");
+			chart->setData(exdata);
+			_vaCharts[wcName] = chart;
+			_vaData[wcName] = exdata;
+			break;
+		}
+		case ProjectData::ResType::VD:
+		{
+			BaseChart* chart = new BaseChart("振动位移", "m");
+			chart->setData(exdata);
+			_vdCharts[wcName] = chart;
+			_vdData[wcName] = exdata;
+			break;
+		}
+		case ProjectData::ResType::Strain:
+		{
+			BaseChart* chart = new BaseChart("应变", "m");
+			chart->setData(exdata);
+			_strainCharts[wcName] = chart;
+			_strainData[wcName] = exdata;
+			break;
+		}
+		case ProjectData::ResType::OP:
+		{
+			BaseChart* chart = new BaseChart("油压", "kPa");
+			chart->setData(exdata);
+			_opCharts[wcName] = chart;
+			_opData[wcName] = exdata;
+			break;
+		}
+		default:
+			break;
+		}
+
 	}
 
 	return true;
@@ -570,6 +723,10 @@ bool ProjectData::saveWorkingConditionsToDocx()
 
 bool ProjectData::saveFluctuationPressureToDocx()
 {
+	if (_fpData.isEmpty() || _fpCharts.isEmpty())
+	{
+		return false;
+	}
 	//章节标题
 	setNormalSelectionStyle(ParagraphFormat::Level1Heading);
 	_wordSelection->dynamicCall("TypeText(const QString&)", "二、 脉动压力");
@@ -610,6 +767,7 @@ bool ProjectData::saveFluctuationPressureToDocx()
 
 	for (int i = 0; i < fpwcs.count(); i++)
 	{
+
 		const auto& wcname = _workingConditions[fpwcs[i]].name;
 		const auto& wcdesp = _workingConditions[fpwcs[i]].description;
 		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
@@ -642,8 +800,12 @@ bool ProjectData::saveFluctuationPressureToDocx()
 	_wordSelection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
 	_wordSelection->dynamicCall("TypeParagraph()");
 
-	for (int i = 0; i < wcs.count(); i++)
+	for (int i = 0, seq = 0; i < wcs.count(); i++)
 	{
+		if (!_fpData[wcs[i].name].hasSegData)
+		{
+			continue;
+		}
 		auto wcdsp = wcs[i].description;
 		QDir exportRootDir(_rootDirPath + QString("/export/%1/脉动压力").arg(wcs[i].name));
 		if (!exportRootDir.exists())
@@ -651,7 +813,7 @@ bool ProjectData::saveFluctuationPressureToDocx()
 		auto exportRootPath = exportRootDir.absolutePath();
 
 		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
-		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(i + 1), wcdsp));
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(++seq), wcdsp));
 		_wordSelection->dynamicCall("TypeParagraph()");
 		_wordSelection->dynamicCall("TypeParagraph()");
 
@@ -721,10 +883,673 @@ bool ProjectData::saveFluctuationPressureToDocx()
 				addCaption("频谱分析-P" + sensorsName[k], false);
 			}
 		}
-		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
-		addCaption("脉动压力特征时序变化-" + wcdsp, false);
 	}
 
+	return true;
+}
+
+bool ProjectData::saveVibrationAccelerationToDocx()
+{
+	if (_vaData.isEmpty() || _vaCharts.isEmpty())
+	{
+		return false;
+	}
+	//章节标题
+	setNormalSelectionStyle(ParagraphFormat::Level1Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "三、 振动加速度");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "1. 全过程时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	//表格标题
+	setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+	addCaption("振动加速度特征值", true);
+	WorkingConditionsList wcs;
+	QStringList sensorsName;
+	QStringList fpwcs = _vaData.keys();
+	std::sort(fpwcs.begin(), fpwcs.end(), &numericCompare);
+	for (int i = 0; i < fpwcs.count(); i++) {
+		wcs.push_back(_workingConditions[fpwcs[i]]);
+		if (0 == i)
+		{
+			const auto& fps = _vaData[fpwcs[i]].statistics;
+			sensorsName = fps.keys();
+			std::sort(sensorsName.begin(), sensorsName.end(), &numericCompare);
+		}
+	}
+	auto table = createEigenvalueTable(wcs, sensorsName);
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& fps = _vaData[fpwcs[i]].statistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			auto stats = fps[sensorname];
+			fillTableDataCell(table, 3 + i * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+		}
+	}
+	skipTable();
+
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& wcname = _workingConditions[fpwcs[i]].name;
+		const auto& wcdesp = _workingConditions[fpwcs[i]].description;
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(i + 1), wcdesp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/振动加速度").arg(wcname));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+		_vaCharts[fpwcs[i]]->save(exportRootPath, 450, 170);
+		_vaCharts[fpwcs[i]]->saveSeg(exportRootPath, 450, 170);
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		for (size_t j = 0; j < sensorsName.count(); j++)
+		{
+			QString savepathts = QString("%1/测点%2_时域图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathts, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("时域变化-P" + sensorsName[j], false);
+
+			QString savepathfs = QString("%1/测点%2_频谱图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathfs, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("频谱分析-P" + sensorsName[j], false);
+		}
+	}
+
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+
+	for (int i = 0, seq = 0; i < wcs.count(); i++)
+	{
+		if (!_vaData[wcs[i].name].hasSegData)
+		{
+			continue;
+		}
+
+		auto wcdsp = wcs[i].description;
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/振动加速度").arg(wcs[i].name));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(++seq), wcdsp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动加速度特征值-" + wcdsp, true);
+		QStringList wcsSeg;
+		auto segtable = createSegEigenvalueTable(wcs[i], wcsSeg, sensorsName);
+		QMap<QString, QVector<double>> sensorMaxValue;
+		QMap<QString, QVector<double>> sensorMinValue;
+		QMap<QString, QVector<double>> sensorRmsValue;
+		const auto& fpsegs = _fpData[wcs[i].name].segStatistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			for (auto k = 0; k < fpsegs.count(); k++)
+			{
+				auto stats = fpsegs[k][sensorname];
+				fillTableDataCell(segtable, 3 + k * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+				sensorMaxValue[sensorname].push_back(stats.max);
+				sensorMinValue[sensorname].push_back(stats.min);
+				sensorRmsValue[sensorname].push_back(stats.rms);
+			}
+		}
+		skipTable();
+
+		auto chartMax = MagChart::paintMagChart("振动加速度最大值对比分析", "闸门开度", "振动加速度(m/s²)", wcsSeg, sensorsName, sensorMaxValue);
+		auto chartMin = MagChart::paintMagChart("振动加速度最小值对比分析", "闸门开度", "振动加速度(m/s²)", wcsSeg, sensorsName, sensorMinValue);
+		auto chartRms = MagChart::paintMagChart("振动加速度均方根对比分析", "闸门开度", "振动加速度(m/s²)", wcsSeg, sensorsName, sensorRmsValue);
+		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, wcs[i].name);
+		chartMax->toPixmap(530, 400).save(chartMaxSavePath);
+		chartMin->toPixmap(530, 400).save(chartMinSavePath);
+		chartRms->toPixmap(530, 400).save(chartRmsSavePath);
+
+		insertImage(chartMaxSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动加速度最大值对比分析", false);
+
+		insertImage(chartMinSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动加速度最小值对比分析", false);
+
+		insertImage(chartRmsSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动加速度均方根对比分析", false);
+
+		for (size_t j = 0; j < wcsSeg.count(); j++)
+		{
+			setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+			_wordSelection->dynamicCall("TypeText(const QString&)", QString("%1) 闸门开度%2").arg(QString::number(j + 1), wcsSeg[j]));
+			_wordSelection->dynamicCall("TypeParagraph()");
+
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			for (size_t k = 0; k < sensorsName.count(); k++)
+			{
+				QString savepathts = QString("%1/测点%2_时域图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathts, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("时域变化-P" + sensorsName[k], false);
+
+				QString savepathfs = QString("%1/测点%2_频谱图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathfs, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("频谱分析-P" + sensorsName[k], false);
+			}
+		}
+	}
+
+	return true;
+}
+
+bool ProjectData::saveVibrationDisplacementToDocx()
+{
+	if (_vdData.isEmpty() || _vdCharts.isEmpty())
+	{
+		return false;
+	}
+	//章节标题
+	setNormalSelectionStyle(ParagraphFormat::Level1Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "四、 振动位移");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "1. 全过程时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	//表格标题
+	setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+	addCaption("振动位移特征值", true);
+	WorkingConditionsList wcs;
+	QStringList sensorsName;
+	QStringList fpwcs = _vdData.keys();
+	std::sort(fpwcs.begin(), fpwcs.end(), &numericCompare);
+	for (int i = 0; i < fpwcs.count(); i++) {
+		wcs.push_back(_workingConditions[fpwcs[i]]);
+		if (0 == i)
+		{
+			const auto& fps = _vdData[fpwcs[i]].statistics;
+			sensorsName = fps.keys();
+			std::sort(sensorsName.begin(), sensorsName.end(), &numericCompare);
+		}
+	}
+	auto table = createEigenvalueTable(wcs, sensorsName);
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& fps = _vdData[fpwcs[i]].statistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			auto stats = fps[sensorname];
+			fillTableDataCell(table, 3 + i * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+		}
+	}
+	skipTable();
+
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& wcname = _workingConditions[fpwcs[i]].name;
+		const auto& wcdesp = _workingConditions[fpwcs[i]].description;
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(i + 1), wcdesp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/振动位移").arg(wcname));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+		_vdCharts[fpwcs[i]]->save(exportRootPath, 450, 170);
+		_vdCharts[fpwcs[i]]->saveSeg(exportRootPath, 450, 170);
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		for (size_t j = 0; j < sensorsName.count(); j++)
+		{
+			QString savepathts = QString("%1/测点%2_时域图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathts, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("时域变化-P" + sensorsName[j], false);
+
+			QString savepathfs = QString("%1/测点%2_频谱图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathfs, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("频谱分析-P" + sensorsName[j], false);
+		}
+	}
+
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+
+	for (int i = 0, seq = 0; i < wcs.count(); i++)
+	{
+		if (!_vdData[wcs[i].name].hasSegData)
+		{
+			continue;
+		}
+
+		auto wcdsp = wcs[i].description;
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/振动位移").arg(wcs[i].name));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(++seq), wcdsp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动位移特征值-" + wcdsp, true);
+		QStringList wcsSeg;
+		auto segtable = createSegEigenvalueTable(wcs[i], wcsSeg, sensorsName);
+		QMap<QString, QVector<double>> sensorMaxValue;
+		QMap<QString, QVector<double>> sensorMinValue;
+		QMap<QString, QVector<double>> sensorRmsValue;
+		const auto& fpsegs = _fpData[wcs[i].name].segStatistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			for (auto k = 0; k < fpsegs.count(); k++)
+			{
+				auto stats = fpsegs[k][sensorname];
+				fillTableDataCell(segtable, 3 + k * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+				sensorMaxValue[sensorname].push_back(stats.max);
+				sensorMinValue[sensorname].push_back(stats.min);
+				sensorRmsValue[sensorname].push_back(stats.rms);
+			}
+		}
+		skipTable();
+
+		auto chartMax = MagChart::paintMagChart("振动位移最大值对比分析", "闸门开度", "振动加速度(m)", wcsSeg, sensorsName, sensorMaxValue);
+		auto chartMin = MagChart::paintMagChart("振动位移最小值对比分析", "闸门开度", "振动加速度(m)", wcsSeg, sensorsName, sensorMinValue);
+		auto chartRms = MagChart::paintMagChart("振动位移均方根对比分析", "闸门开度", "振动加速度(m)", wcsSeg, sensorsName, sensorRmsValue);
+		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, wcs[i].name);
+		chartMax->toPixmap(530, 400).save(chartMaxSavePath);
+		chartMin->toPixmap(530, 400).save(chartMinSavePath);
+		chartRms->toPixmap(530, 400).save(chartRmsSavePath);
+
+		insertImage(chartMaxSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动位移最大值对比分析", false);
+
+		insertImage(chartMinSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动位移最小值对比分析", false);
+
+		insertImage(chartRmsSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动位移均方根对比分析", false);
+
+		for (size_t j = 0; j < wcsSeg.count(); j++)
+		{
+			setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+			_wordSelection->dynamicCall("TypeText(const QString&)", QString("%1) 闸门开度%2").arg(QString::number(j + 1), wcsSeg[j]));
+			_wordSelection->dynamicCall("TypeParagraph()");
+
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			for (size_t k = 0; k < sensorsName.count(); k++)
+			{
+				QString savepathts = QString("%1/测点%2_时域图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathts, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("时域变化-P" + sensorsName[k], false);
+
+				QString savepathfs = QString("%1/测点%2_频谱图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathfs, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("频谱分析-P" + sensorsName[k], false);
+			}
+		}
+	}
+	return true;
+}
+
+bool ProjectData::saveStrainToDocx()
+{
+	if (_strainData.isEmpty() || _strainCharts.isEmpty())
+	{
+		return false;
+	}
+	//章节标题
+	setNormalSelectionStyle(ParagraphFormat::Level1Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "五、 应变");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "1. 全过程时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	//表格标题
+	setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+	addCaption("应变特征值", true);
+	WorkingConditionsList wcs;
+	QStringList sensorsName;
+	QStringList fpwcs = _strainData.keys();
+	std::sort(fpwcs.begin(), fpwcs.end(), &numericCompare);
+	for (int i = 0; i < fpwcs.count(); i++) {
+		wcs.push_back(_workingConditions[fpwcs[i]]);
+		if (0 == i)
+		{
+			const auto& fps = _strainData[fpwcs[i]].statistics;
+			sensorsName = fps.keys();
+			std::sort(sensorsName.begin(), sensorsName.end(), &numericCompare);
+		}
+	}
+	auto table = createEigenvalueTable(wcs, sensorsName);
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& fps = _strainData[fpwcs[i]].statistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			auto stats = fps[sensorname];
+			fillTableDataCell(table, 3 + i * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+		}
+	}
+	skipTable();
+
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& wcname = _workingConditions[fpwcs[i]].name;
+		const auto& wcdesp = _workingConditions[fpwcs[i]].description;
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(i + 1), wcdesp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/应变").arg(wcname));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+		_strainCharts[fpwcs[i]]->save(exportRootPath, 450, 170);
+		_strainCharts[fpwcs[i]]->saveSeg(exportRootPath, 450, 170);
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		for (size_t j = 0; j < sensorsName.count(); j++)
+		{
+			QString savepathts = QString("%1/测点%2_时域图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathts, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("时域变化-P" + sensorsName[j], false);
+
+			QString savepathfs = QString("%1/测点%2_频谱图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathfs, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("频谱分析-P" + sensorsName[j], false);
+		}
+	}
+
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+
+	for (int i = 0, seq = 0; i < wcs.count(); i++)
+	{
+		if (!_strainData[wcs[i].name].hasSegData)
+		{
+			continue;
+		}
+
+		auto wcdsp = wcs[i].description;
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/振动位移").arg(wcs[i].name));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(++seq), wcdsp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("振动位移特征值-" + wcdsp, true);
+		QStringList wcsSeg;
+		auto segtable = createSegEigenvalueTable(wcs[i], wcsSeg, sensorsName);
+		QMap<QString, QVector<double>> sensorMaxValue;
+		QMap<QString, QVector<double>> sensorMinValue;
+		QMap<QString, QVector<double>> sensorRmsValue;
+		const auto& fpsegs = _fpData[wcs[i].name].segStatistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			for (auto k = 0; k < fpsegs.count(); k++)
+			{
+				auto stats = fpsegs[k][sensorname];
+				fillTableDataCell(segtable, 3 + k * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+				sensorMaxValue[sensorname].push_back(stats.max);
+				sensorMinValue[sensorname].push_back(stats.min);
+				sensorRmsValue[sensorname].push_back(stats.rms);
+			}
+		}
+		skipTable();
+
+		auto chartMax = MagChart::paintMagChart("应变最大值对比分析", "闸门开度", "应变(m)", wcsSeg, sensorsName, sensorMaxValue);
+		auto chartMin = MagChart::paintMagChart("应变最小值对比分析", "闸门开度", "应变(m)", wcsSeg, sensorsName, sensorMinValue);
+		auto chartRms = MagChart::paintMagChart("应变均方根对比分析", "闸门开度", "应变(m)", wcsSeg, sensorsName, sensorRmsValue);
+		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, wcs[i].name);
+		chartMax->toPixmap(530, 400).save(chartMaxSavePath);
+		chartMin->toPixmap(530, 400).save(chartMinSavePath);
+		chartRms->toPixmap(530, 400).save(chartRmsSavePath);
+
+		insertImage(chartMaxSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("应变最大值对比分析", false);
+
+		insertImage(chartMinSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("应变最小值对比分析", false);
+
+		insertImage(chartRmsSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("应变均方根对比分析", false);
+
+		for (size_t j = 0; j < wcsSeg.count(); j++)
+		{
+			setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+			_wordSelection->dynamicCall("TypeText(const QString&)", QString("%1) 闸门开度%2").arg(QString::number(j + 1), wcsSeg[j]));
+			_wordSelection->dynamicCall("TypeParagraph()");
+
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			for (size_t k = 0; k < sensorsName.count(); k++)
+			{
+				QString savepathts = QString("%1/测点%2_时域图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathts, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("时域变化-P" + sensorsName[k], false);
+
+				QString savepathfs = QString("%1/测点%2_频谱图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathfs, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("频谱分析-P" + sensorsName[k], false);
+			}
+		}
+	}
+	return true;
+}
+
+bool ProjectData::saveOilPressureToDocx()
+{
+	if (_opData.isEmpty() || _opCharts.isEmpty())
+	{
+		return false;
+	}
+	//章节标题
+	setNormalSelectionStyle(ParagraphFormat::Level1Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "六、 油压");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "1. 全过程时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+	//表格标题
+	setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+	addCaption("油压特征值", true);
+	WorkingConditionsList wcs;
+	QStringList sensorsName;
+	QStringList fpwcs = _opData.keys();
+	std::sort(fpwcs.begin(), fpwcs.end(), &numericCompare);
+	for (int i = 0; i < fpwcs.count(); i++) {
+		wcs.push_back(_workingConditions[fpwcs[i]]);
+		if (0 == i)
+		{
+			const auto& fps = _opData[fpwcs[i]].statistics;
+			sensorsName = fps.keys();
+			std::sort(sensorsName.begin(), sensorsName.end(), &numericCompare);
+		}
+	}
+	auto table = createEigenvalueTable(wcs, sensorsName);
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& fps = _opData[fpwcs[i]].statistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			auto stats = fps[sensorname];
+			fillTableDataCell(table, 3 + i * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+			fillTableDataCell(table, 3 + i * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+		}
+	}
+	skipTable();
+
+	for (int i = 0; i < fpwcs.count(); i++)
+	{
+		const auto& wcname = _workingConditions[fpwcs[i]].name;
+		const auto& wcdesp = _workingConditions[fpwcs[i]].description;
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(i + 1), wcdesp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/油压").arg(wcname));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+		_opCharts[fpwcs[i]]->save(exportRootPath, 450, 170);
+		_opCharts[fpwcs[i]]->saveSeg(exportRootPath, 450, 170);
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		for (size_t j = 0; j < sensorsName.count(); j++)
+		{
+			QString savepathts = QString("%1/测点%2_时域图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathts, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("时域变化-P" + sensorsName[j], false);
+
+			QString savepathfs = QString("%1/测点%2_频谱图.png").arg(exportRootPath, sensorsName[j]);
+			insertImage(savepathfs, 450, 170);
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			addCaption("频谱分析-P" + sensorsName[j], false);
+		}
+	}
+
+	setNormalSelectionStyle(ParagraphFormat::Level2Heading);
+	_wordSelection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
+	_wordSelection->dynamicCall("TypeParagraph()");
+
+	for (int i = 0, seq = 0; i < wcs.count(); i++)
+	{
+		if (!_opData[wcs[i].name].hasSegData)
+		{
+			continue;
+		}
+
+		auto wcdsp = wcs[i].description;
+		QDir exportRootDir(_rootDirPath + QString("/export/%1/油压").arg(wcs[i].name));
+		if (!exportRootDir.exists())
+			exportRootDir.mkpath(".");
+		auto exportRootPath = exportRootDir.absolutePath();
+
+		setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+		_wordSelection->dynamicCall("TypeText(const QString&)", QString("(%1) %2").arg(QString::number(++seq), wcdsp));
+		_wordSelection->dynamicCall("TypeParagraph()");
+		_wordSelection->dynamicCall("TypeParagraph()");
+
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("油压特征值-" + wcdsp, true);
+		QStringList wcsSeg;
+		auto segtable = createSegEigenvalueTable(wcs[i], wcsSeg, sensorsName);
+		QMap<QString, QVector<double>> sensorMaxValue;
+		QMap<QString, QVector<double>> sensorMinValue;
+		QMap<QString, QVector<double>> sensorRmsValue;
+		const auto& fpsegs = _fpData[wcs[i].name].segStatistics;
+		for (int j = 0; j < sensorsName.count(); j++)
+		{
+			auto sensorname = sensorsName[j];
+			for (auto k = 0; k < fpsegs.count(); k++)
+			{
+				auto stats = fpsegs[k][sensorname];
+				fillTableDataCell(segtable, 3 + k * 3 + 0, 3 + j, QString::number(stats.max, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 1, 3 + j, QString::number(stats.min, 'f', 2), true);
+				fillTableDataCell(segtable, 3 + k * 3 + 2, 3 + j, QString::number(stats.rms, 'f', 2), true);
+				sensorMaxValue[sensorname].push_back(stats.max);
+				sensorMinValue[sensorname].push_back(stats.min);
+				sensorRmsValue[sensorname].push_back(stats.rms);
+			}
+		}
+		skipTable();
+
+		auto chartMax = MagChart::paintMagChart("油压最大值对比分析", "闸门开度", "油压(kPa)", wcsSeg, sensorsName, sensorMaxValue);
+		auto chartMin = MagChart::paintMagChart("油压最小值对比分析", "闸门开度", "油压(kPa)", wcsSeg, sensorsName, sensorMinValue);
+		auto chartRms = MagChart::paintMagChart("油压均方根对比分析", "闸门开度", "油压(kPa)", wcsSeg, sensorsName, sensorRmsValue);
+		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, wcs[i].name);
+		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, wcs[i].name);
+		chartMax->toPixmap(530, 400).save(chartMaxSavePath);
+		chartMin->toPixmap(530, 400).save(chartMinSavePath);
+		chartRms->toPixmap(530, 400).save(chartRmsSavePath);
+
+		insertImage(chartMaxSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("油压最大值对比分析", false);
+
+		insertImage(chartMinSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("油压最小值对比分析", false);
+
+		insertImage(chartRmsSavePath, 530, 400);
+		setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+		addCaption("油压均方根对比分析", false);
+
+		for (size_t j = 0; j < wcsSeg.count(); j++)
+		{
+			setNormalSelectionStyle(ParagraphFormat::Level3Heading);
+			_wordSelection->dynamicCall("TypeText(const QString&)", QString("%1) 闸门开度%2").arg(QString::number(j + 1), wcsSeg[j]));
+			_wordSelection->dynamicCall("TypeParagraph()");
+
+			setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+			for (size_t k = 0; k < sensorsName.count(); k++)
+			{
+				QString savepathts = QString("%1/测点%2_时域图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathts, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("时域变化-P" + sensorsName[k], false);
+
+				QString savepathfs = QString("%1/测点%2_频谱图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
+				insertImage(savepathfs, 450, 170);
+				setNormalSelectionStyle(ParagraphFormat::ChartCaption);
+				addCaption("频谱分析-P" + sensorsName[k], false);
+			}
+		}
+	}
 	return true;
 }
 

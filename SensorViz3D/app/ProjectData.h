@@ -8,16 +8,11 @@
 #include <qaxobject.h>
 #include <QString>
 
-namespace docx
-{
-	class Document;
-}
-
 #define WORKING_CONDITIONS_LINE_COUNT 10
 
 #define NORMAL_FS_TS_IMAGE_WIDTH 450
 #define NORMAL_FS_TS_IMAGE_HEIGHT 450
-
+class BaseChart;
 struct WorkingConditions
 {
 	QString name{ "" };					//工况名称	
@@ -48,11 +43,12 @@ struct RawData
 	QDateTime startTime{};					//开始时间(绝对时间)
 	QMap<QString, double*>data{};			//原始数据<传感器编号，数值>
 	QMap<QString, Statistics>statistics{};	//统计数据<传感器编号，数值>
+	bool hasSegData{ false };				//是否存在时序分割数据
 };
 
 //数据分段数量，将会有9个中间数据点，数据点前后各0.5*num个数量的数据进行重分析与统计
 #define SEGMENT_COUNT 10
-struct FPData :public RawData
+struct ExtraData :public RawData
 {
 	int dataCountEach{ 0 };						//数据点数量
 	QVector<QMap<QString, double*>>segData{};
@@ -75,8 +71,16 @@ public:
 private:
 	// 读取工况数据并保存
 	bool loadWorkingConditions(const QString& dirPath);
+	// 读取振动加速度数据列表
 	// 读取脉动压力数据列表
-	bool loadFluctuationPressure(const QString& dirPath);
+	enum class ResType {
+		FP,
+		VA,
+		VD,
+		Strain,
+		OP
+	};
+	bool loadResFile(const QString& dirPath, ResType type);
 
 	bool initWordDocment();
 
@@ -95,7 +99,10 @@ private:
 private:
 	bool saveWorkingConditionsToDocx();
 	bool saveFluctuationPressureToDocx();
-
+	bool saveVibrationAccelerationToDocx();
+	bool saveVibrationDisplacementToDocx();
+	bool saveStrainToDocx();
+	bool saveOilPressureToDocx();
 private:
 	QAxObject* createEigenvalueTable(WorkingConditionsList wcs, const QStringList& sensorsNames);
 	QAxObject* createSegEigenvalueTable(WorkingConditions wc, QStringList& wcsSeg, const QStringList& sensorsNames);
@@ -111,8 +118,20 @@ private:
 
 	QMap<QString, WorkingConditions> _workingConditions;
 
-	QMap<QString, FPData> _fpData;		//脉动压力数据<工况名,数据>
-	QMap<QString, FPChart*> _fpCharts;	//脉动压力图表<工况名,图表>
+	QMap<QString, ExtraData> _fpData;		//脉动压力数据<工况名,数据>
+	QMap<QString, BaseChart*> _fpCharts;	//脉动压力图表<工况名,图表>
+
+	QMap<QString, ExtraData> _vaData;		//振动加速度数据<工况名,数据>
+	QMap<QString, BaseChart*> _vaCharts;	//振动加速度图表<工况名,图表>
+
+	QMap<QString, ExtraData> _vdData;		//振动位移数据<工况名,数据>
+	QMap<QString, BaseChart*> _vdCharts;	//振动位移图表<工况名,图表>
+
+	QMap<QString, ExtraData> _strainData;		//应变数据<工况名,数据>
+	QMap<QString, BaseChart*> _strainCharts;	//应变图表<工况名,图表>
+
+	QMap<QString, ExtraData> _opData;		//油压数据<工况名,数据>
+	QMap<QString, BaseChart*> _opCharts;	//油压图表<工况名,图表>
 
 	QAxObject* _wordWriter{};
 	QAxObject* _wordDocument{};
