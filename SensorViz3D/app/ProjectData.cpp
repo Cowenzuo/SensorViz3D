@@ -1,14 +1,12 @@
 #include "ProjectData.h"
 
 #include <QDebug>
-#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QVariant>
 
 #include "rwmat/ReadWriteMatFile.h"
 #include "charts/ChartPainter.h"
-
 
 ProjectData::ProjectData(QObject* parent)
 	: QObject(parent)
@@ -94,6 +92,11 @@ bool ProjectData::save(const QString& saveDir, const QString& filename)
 			qDebug() << "Save analyse data to docx failed. floder:" << folder.first;
 			continue;
 		}
+		foreach(auto var ,charts)
+		{
+			delete var;
+		}
+		clearExdatas(exdatas);
 		qDebug() << "Save analyse data to docx succeed. floder:" << folder.first;
 	}
 
@@ -742,6 +745,46 @@ QString ProjectData::getFullPathFromDirByAppointFolder(const QString& foldername
 		}
 	}
 	return QString();
+}
+
+void ProjectData::clearExtraData(ExtraData& extra)
+{
+	// 1. 清理 RawData 部分的 data 成员（double* 数组）
+	for (auto it = extra.data.begin(); it != extra.data.end(); ++it) {
+		delete[] it.value(); // 删除每个传感器对应的 double 数组
+	}
+	extra.data.clear();
+
+	// 2. 清理 statistics (QMap<QString, Statistics> 不需要特殊清理)
+	extra.statistics.clear();
+
+	// 3. 清理 segData 中的 double* 数组
+	for (auto& segMap : extra.segData) {
+		for (auto it = segMap.begin(); it != segMap.end(); ++it) {
+			delete[] it.value(); // 删除分段数据中的 double 数组
+		}
+		segMap.clear();
+	}
+	extra.segData.clear();
+
+	// 4. 清理 segStatistics (QMap<QString, Statistics> 不需要特殊清理)
+	extra.segStatistics.clear();
+
+	// 5. 重置其他成员
+	extra.wcname.clear();
+	extra.frequency = 100;
+	extra.senseCount = 0;
+	extra.dataCount = 0;
+	extra.dataCountEach = 0;
+	extra.hasSegData = false;
+}
+
+void ProjectData::clearExdatas(QMap<QString, ExtraData>& exdatas)
+{
+	for (auto it = exdatas.begin(); it != exdatas.end(); ++it) {
+		clearExtraData(it.value());
+	}
+	exdatas.clear();
 }
 
 void ProjectData::setNormalSelectionStyle(QAxObject* selection, ParagraphFormat pf)

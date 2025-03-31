@@ -121,7 +121,8 @@ private:
 private:
 	//辅助函数：纯定制，无通用性，只是为了方遍从一个rootDir中提取出文件夹名字为foldername的完整文件夹路径
 	QString getFullPathFromDirByAppointFolder(const QString& foldername, QDir rootDir);
-
+	void clearExtraData(ExtraData& extra);
+	void clearExdatas(QMap<QString, ExtraData>& exdatas);
 private:
 	//以下为写入Docx时的辅助函数，纯定制，无通用性，只是为了该项目读写数据文件使用
 	enum class ParagraphFormat {

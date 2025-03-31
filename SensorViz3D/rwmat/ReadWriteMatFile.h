@@ -10,7 +10,7 @@ namespace RWMAT
 		const QStringList& sensorNames,
 		const QStringList& sensorValid,
 		int singleDataCols,
-		RawData& fp);
-
+		RawData& fp
+	);
 };
 

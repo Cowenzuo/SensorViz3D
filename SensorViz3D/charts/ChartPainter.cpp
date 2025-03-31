@@ -2,6 +2,34 @@
 
 #include "PSDAnalyzer.h"
 
+BaseChart::~BaseChart()
+{
+	for (auto it = _imgTimeSeries.begin(); it != _imgTimeSeries.end(); ++it) {
+		delete[] it.value();
+	}
+	_imgTimeSeries.clear();
+	for (auto it = _imgFrequencySpectrum.begin(); it != _imgFrequencySpectrum.end(); ++it) {
+		delete[] it.value();
+	}
+	_imgFrequencySpectrum.clear();
+
+	for (auto& segMap : _imgSegDataTimeSeries) {
+		for (auto it = segMap.begin(); it != segMap.end(); ++it) {
+			delete[] it.value();
+		}
+		segMap.clear();
+	}
+	_imgSegDataTimeSeries.clear();
+	
+	for (auto& segMap : _imgSegDataFrequencySpectrum) {
+		for (auto it = segMap.begin(); it != segMap.end(); ++it) {
+			delete[] it.value();
+		}
+		segMap.clear();
+	}
+	_imgSegDataFrequencySpectrum.clear();
+}
+
 void BaseChart::processSensorData(const QString& sensorName, double* sensorData, int dataCount, double frequency, QMap<QString, ScalableCustomPlot*>& timeSeriesMap, QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap)
 {
 	// 准备Y轴数据

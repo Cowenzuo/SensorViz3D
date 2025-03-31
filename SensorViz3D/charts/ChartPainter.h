@@ -6,7 +6,7 @@ class BaseChart
 {
 public:
 	BaseChart(const QString& name, const QString& unit) : _titleRootName(name), _titleUnit(unit) {}
-	virtual ~BaseChart() {}
+	virtual ~BaseChart();
 
 	void processSensorData(const QString& sensorName, double* sensorData, int dataCount, double frequency, QMap<QString, ScalableCustomPlot*>& timeSeriesMap, QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap);
 
