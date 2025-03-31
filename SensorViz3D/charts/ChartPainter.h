@@ -9,11 +9,14 @@ public:
 	virtual ~BaseChart() {}
 
 	void processSensorData(const QString& sensorName, double* sensorData, int dataCount, double frequency, QMap<QString, ScalableCustomPlot*>& timeSeriesMap, QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap);
-	
+
 	void setData(const ExtraData& exdata);
 
 	void save(const QString& dirpath, int width, int height);
 	void saveSeg(const QString& dirpath, int width, int height);
+
+	QString getTiltleRootName() { return _titleRootName; }
+	QString getTiltleUnit() { return _titleUnit; }
 public:
 	QMap<QString, ScalableCustomPlot* >_imgTimeSeries{};		//时域过程图
 	QMap<QString, ScalableCustomPlot* >_imgFrequencySpectrum{};	//频谱分析图

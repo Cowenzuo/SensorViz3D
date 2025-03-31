@@ -57,14 +57,14 @@ bool RWMAT::readMatFile(
 	}
 #endif  // NoExist
 
-	auto valueCols = mxGetN(datasArray);
+	quint64 valueCols = mxGetN(datasArray);
 	if (valueCols != sensorNames.count() * singleDataCols)
 	{
 		return false;
 	}
 	fp.senseCount = sensorNames.count();
-	auto valueRows = mxGetM(datasArray);
-	auto removeSize = fp.frequency * 5;//前后各扔掉5秒
+	quint64 valueRows = mxGetM(datasArray);
+	quint64 removeSize = fp.frequency * 5;//前后各扔掉5秒
 	fp.dataCount = valueRows - removeSize * 2;
 
 	double* datas = mxGetPr(datasArray);
