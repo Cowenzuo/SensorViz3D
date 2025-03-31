@@ -53,7 +53,9 @@ struct ExtraData :public RawData
 	QVector<QMap<QString, Statistics>>segStatistics{};
 };
 
-class BaseChart;
+enum class ResType { FP, VA, VD, Strain, OP, HC };
+
+class ChartPainter;
 class FPChart;
 class ProjectData : public QObject
 {
@@ -98,15 +100,46 @@ private:
 	);
 private:
 	//将各个维度的数据加载到内存
-	enum class ResType { FP, VA, VD, Strain, OP };
-	void getResTypeInfo(ResType type, QString& name, QString& unit, int& datacol);
+	void getResTypeInfo(ResType type, QString& name, QString& unit);
+	/**
+	* @brief 加载并分析数据文件
+	*
+	* 该函数负责从指定目录加载MAT格式的数据文件，解析传感器数据，并根据需要进行分段处理，
+	* 最后创建图表绘制对象。
+	*
+	* @param dirPath 数据文件所在目录路径
+	* @param allwcs 所有工况的映射表，用于验证数据文件是否有效
+	* @param exdatas [out] 存储解析后的额外数据
+	* @param charts [out] 存储创建的图表绘制对象
+	* @param type 资源类型，决定如何处理数据
+	* @return bool 是否成功加载和分析数据
+	*/
 	bool loadAnalyseDataFile(
 		const QString& dirPath,
 		const QMap<QString, WorkingConditions>& wc,
 		QMap<QString, ExtraData>& exdata,
-		QMap<QString, BaseChart*>& charts,
+		QMap<QString, ChartPainter*>& charts,
 		ResType type
 	);
+	/**
+	 * @brief 处理分段数据
+	 *
+	 * 如果需要分段处理，则计算每段数据的统计信息
+	 *
+	 * @param exdata [in/out] 要处理的额外数据
+	 * @param wcName 工况名称
+	 * @param segwcnames 需要分段的工况名称列表
+	 * @param sensorNames 传感器名称列表
+	 * @param sensorValid 传感器是否需要解析的标记位
+	 */
+	void processSegmentedData(
+		ExtraData& exdata,
+		const QString& wcName,
+		const QStringList& segwcnames,
+		const QStringList& sensorNames,
+		const QStringList& sensorValid
+	);
+
 	//将各个维度的数据存到docx(非即时写入)
 	bool saveAnalyseDataToDocx(
 		QAxObject* doc,
@@ -116,7 +149,7 @@ private:
 		const QString& unit,
 		const QMap<QString, WorkingConditions>& wcs,
 		const QMap<QString, ExtraData>& exdatas,
-		const QMap<QString, BaseChart*>& charts
+		const QMap<QString, ChartPainter*>& charts
 	);
 private:
 	//辅助函数：纯定制，无通用性，只是为了方遍从一个rootDir中提取出文件夹名字为foldername的完整文件夹路径

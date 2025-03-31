@@ -21,8 +21,8 @@ int PSDA::preprocessData(
 		qWarning() << "Invalid input parameters";
 		return -1;
 	}
-	// 计算完整段数,向上取整
-	const int numSegments = (datacount + order) / order - 1;
+	// 计算完整段数,向下取整，多的直接不要了（不过在完整处理逻辑上，前面读取原始数据的时候就已经按order采样频率取整了）
+	const int numSegments = datacount / order;
 	if (numSegments == 0) {
 		qDebug() << "Data size too small for segmentation";
 		return 0;
@@ -83,105 +83,117 @@ int PSDA::preprocessData(
 	return fluctuation.size();
 }
 
+/**
+ * @brief 计算功率谱密度(PSD)
+ *
+ * 使用Welch方法计算输入信号的功率谱密度，包括分段、加窗、FFT和平均处理。
+ *
+ * @param data 输入数据数组
+ * @param datacount 数据点数
+ * @param sampleFrequency 采样频率(Hz)
+ * @param freqs [out] 输出频率向量(Hz)
+ * @param pxx [out] 输出功率谱密度向量
+ * @param maxFreqRatio 最大频率比例(0-1)，默认为0.4(即奈奎斯特频率的40%)
+ * @param outlierThreshold 异常值阈值(未使用，保留供未来扩展)
+ */
 void PSDA::calculatePowerSpectralDensity(
-	const double* data,
-	int datacount,
-	double sampleFrequency,
-	QVector<double>& freqs,
-	QVector<double>& pxx,
-	double maxFreqRatio /*= 0.4*/,
-	double outlierThreshold /*= 3.0*/)
+    const double* data,
+    int datacount,
+    double sampleFrequency,
+    QVector<double>& freqs,
+    QVector<double>& pxx,
+    double maxFreqRatio /*= 0.4*/,
+    double outlierThreshold /*= 3.0*/)
 {
-	// 参数校验增强
-	if (!data || datacount <= 0 || sampleFrequency <= 0 ||
-		maxFreqRatio <= 0 || maxFreqRatio > 1.0) {
-		qWarning() << "Invalid parameters| Data:" << datacount
-			<< "| Fs:" << sampleFrequency
-			<< "| Ratio:" << maxFreqRatio;
-		return;
-	}
+    // 1. 参数校验
+    if (!data || datacount <= 0 || sampleFrequency <= 0 || maxFreqRatio <= 0 || maxFreqRatio > 1.0) {
+        qWarning() << "Invalid parameters in calculatePowerSpectralDensity:"
+            << "Data:" << datacount
+            << "| Fs:" << sampleFrequency
+            << "| Ratio:" << maxFreqRatio;
+        return;
+    }
 
-	// 动态调整 nfft
-	int nfft = qNextPowerOfTwo(datacount);
-	nfft = qBound(64, qMin(nfft, datacount), 4096); // 提高上限
-	const int overlap = nfft / 2;// 50% 重叠
-	const int numSegments = (datacount - overlap) / (nfft - overlap);  // 分段数
+    // 2. 确定FFT点数(优化性能与分辨率平衡)
+    int nfft = qNextPowerOfTwo(datacount);
+    nfft = qBound(256, qMin(nfft, datacount), 4096); // 更合理的范围限制
+    const int overlap = nfft / 2; // 50%重叠
+    const int numSegments = qMax(1, (datacount - overlap) / (nfft - overlap)); // 确保至少1段
 
-	// 检查分段数是否有效
-	if (numSegments <= 0) {
-		qWarning() << "Invalid number of segments. Check input data length and nfft."
-			<< "datacount =" << datacount << ", nfft =" << nfft << ", overlap =" << overlap << ", numSegments =" << numSegments;
-		return;
-	}
+    if (numSegments <= 0) {
+        qCritical() << "Invalid segment calculation - datacount:" << datacount
+            << "nfft:" << nfft << "overlap:" << overlap;
+        return;
+    }
 
-	// 初始化频率和功率谱
-	freqs.resize(nfft / 2 + 1);
-	pxx.resize(nfft / 2 + 1);
-	std::fill(pxx.begin(), pxx.end(), 0.0);
+    // 3. 初始化输出向量
+    const int outputSize = nfft / 2 + 1;
+    freqs.resize(outputSize);
+    pxx.resize(outputSize);
+    std::fill(pxx.begin(), pxx.end(), 0.0);
 
-	// 计算频率轴
-	for (int i = 0; i < freqs.size(); ++i) {
-		freqs[i] = i * sampleFrequency / nfft;
-	}
+    // 4. 预计算频率轴
+    const double freqStep = sampleFrequency / nfft;
+    for (int i = 0; i < outputSize; ++i) {
+        freqs[i] = i * freqStep;
+    }
 
-	// 分段加窗并计算功率谱
-	for (int seg = 0; seg < numSegments; ++seg) {
-		int start = seg * (nfft - overlap);
-		int end = start + nfft;
+    // 5. 分段处理
+    double windowEnergySum = 0.0; // 用于归一化的窗函数能量总和
+    std::vector<double> window(nfft); // 预计算窗函数
+    for (int i = 0; i < nfft; ++i) {
+        window[i] = 0.5 * (1 - cos(2 * M_PI * i / (nfft - 1))); // 汉宁窗
+        windowEnergySum += window[i] * window[i];
+    }
+    const double scaleFactor = 1.0 / (sampleFrequency * windowEnergySum * nfft);
 
-		if (end > datacount)
-			break;  // 超出数据范围
+    // 6. 主处理循环
+    for (int seg = 0; seg < numSegments; ++seg) {
+        const int start = seg * (nfft - overlap);
+        const int end = start + nfft;
 
-		// 提取当前段数据
-		std::vector<double> segment(nfft);
-		for (int i = 0; i < nfft; ++i) {
-			segment[i] = data[start + i];
-		}
+        if (end > datacount) break;
 
-		// 应用汉宁窗并计算窗函数能量
-		double windowSum = 0.0;
-		for (int i = 0; i < nfft; ++i) {
-			double windowValue = 0.5 * (1 - cos(2 * M_PI * i / (nfft - 1)));  // 汉宁窗
-			segment[i] *= windowValue;
-			windowSum += windowValue * windowValue;  // 计算窗函数能量
-		}
+        // 6.1 准备FFT输入数据(应用窗函数)
+        std::vector<double> segment(nfft);
+        for (int i = 0; i < nfft; ++i) {
+            segment[i] = data[start + i] * window[i];
+        }
 
-		// 检查窗函数能量是否为零
-		if (windowSum <= 0.0) {
-			qWarning() << "Window sum is zero or negative. Check window function.";
-			return;
-		}
+        // 6.2 执行FFT
+        fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * outputSize);
+        fftw_plan plan = fftw_plan_dft_r2c_1d(nfft, segment.data(), out, FFTW_ESTIMATE);
+        fftw_execute(plan);
 
-		// 执行FFT
-		fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (nfft / 2 + 1));
-		fftw_plan plan = fftw_plan_dft_r2c_1d(nfft, segment.data(), out, FFTW_ESTIMATE);
-		fftw_execute(plan);
+        // 6.3 计算并累加功率谱
+        for (int i = 0; i < outputSize; ++i) {
+            const double real = out[i][0], imag = out[i][1];
+            pxx[i] += (real * real + imag * imag) * scaleFactor;
+        }
 
-		// 计算功率谱并累加
-		for (int i = 0; i < nfft / 2 + 1; ++i) {
-			double magnitudeSquared = (out[i][0] * out[i][0] + out[i][1] * out[i][1]);
-			double power = magnitudeSquared / (sampleFrequency * windowSum * nfft);  // 归一化
-			pxx[i] += power;
-		}
+        // 6.4 清理FFTW资源
+        fftw_destroy_plan(plan);
+        fftw_free(out);
+    }
 
-		// 释放FFTW资源
-		fftw_destroy_plan(plan);
-		fftw_free(out);
-	}
+    // 7. 后处理
+    // 7.1 平均各段结果
+    const double avgScale = 1.0 / numSegments;
+    for (int i = 0; i < outputSize; ++i) {
+        pxx[i] *= avgScale;
+    }
 
-	// 平均功率谱
-	for (int i = 0; i < pxx.size(); ++i) {
-		pxx[i] *= 13000 / numSegments;  // TODO:???没来由的放大13000倍就可以了
-	}
+    // 7.2 去除直流分量
+    pxx[0] = 0.0;
 
-	// 去除直流分量
-	pxx[0] = 0.0;
+    // 7.3 应用经验缩放因子(只是为了放大Y值，让画面更好看点)
+    const double empiricalScale = 10000.0; 
+    for (int i = 0; i < outputSize; ++i) {
+        pxx[i] *= empiricalScale;
+    }
 
-	// 限制频率范围
-	int maxFreqIndex = maxFreqRatio * nfft;
-	if (maxFreqIndex >= freqs.size()) {
-		maxFreqIndex = freqs.size() - 1;
-	}
-	freqs.resize(maxFreqIndex + 1);
-	pxx.resize(maxFreqIndex + 1);
+    // 7.4 限制输出频率范围
+    const int maxFreqIndex = qMin(static_cast<int>(maxFreqRatio * outputSize), outputSize - 1);
+    freqs.resize(maxFreqIndex + 1);
+    pxx.resize(maxFreqIndex + 1);
 }

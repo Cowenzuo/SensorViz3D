@@ -15,16 +15,17 @@
 # 工程目录结构
 > 当前工程使用vs的sln解决方案管理并编译
 > 后续会考虑转为CMake工程或QMake工程，只是感觉可能没必要
-1. 3rdprty				里面只存在QXslx、QCustomPlots、libfftw3这三个较为轻量级的库
-2. docs					文档
-3. SensorViz3D			源代码
-4. SensorViz3D.sln		solution
+>
+> 1. 3rdprty				里面只存在QXslx、QCustomPlots、libfftw3这三个较为轻量级的库
+> 2. docs					文档
+> 3. SensorViz3D			源代码
+> 4. SensorViz3D.sln		solution
 > 3rdprty没有放全东西，主要是因为Matlab、OSG、Qt的本体太过于庞大，所以关于这些的依赖环境需要自行配置，
-> 
+>
 > 内部提供了宏定义的预设，因此在配置时需要将MatLab的安装程序路径写到环境变量里面去
-> 
+>
 > Qt暂不需要，因为采用vs的sln方式，有qt-vs-addin插件的存在，已经全部都有了
-> 
+>
 > 例：
 > 1. MatLabInstallDir =D:/_softwaves/MATLAB
 > 2. OSGInstallDir =D:/_softwaves/OSG

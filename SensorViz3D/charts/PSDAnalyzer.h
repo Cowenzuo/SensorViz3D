@@ -2,18 +2,6 @@
 
 #include <fftw3.h>
 namespace PSDA {
-	// FFTW资源管理
-	struct FFTWGuard {
-		fftw_plan plan;
-		fftw_complex* out;
-		double* in;
-		~FFTWGuard() {
-			fftw_destroy_plan(plan);
-			fftw_free(out);
-			fftw_free(in);
-		}
-	};
-
 	/*
 		 * @brief 计算运行阶次均值(ROM)和有效波动数据
 		 * @param data 输入数据数组

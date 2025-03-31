@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 
 	//just for test
 	ProjectData projectData(nullptr);
-	projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
-	//projectData.save("../data/2025_03_22_Experiment");
+	//projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
+	projectData.setDataPackage("../data/2025_03_23_Experiment", "../data/2025_03_23_Experiment/export", true);
 	return a.exec();
 }

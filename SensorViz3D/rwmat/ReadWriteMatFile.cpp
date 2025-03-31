@@ -11,11 +11,12 @@
 
 
 bool RWMAT::readMatFile(
+	RawData& fp,
 	const QString& filepath,
 	const QStringList& sensorNames,
 	const QStringList& sensorValid,
-	int singleDataCols,
-	RawData& fp)
+	ResType type
+)
 {
 	// 1. 文件打开与基础校验
 	MATFile* pmat = matOpen(filepath.toUtf8().constData(), "r");
@@ -52,6 +53,15 @@ bool RWMAT::readMatFile(
 	}
 
 	// 4. 数据维度校验
+	int singleDataCols = 1;
+	if (type == ResType::VA || type == ResType::VD)
+	{
+		singleDataCols = 3;
+	}
+	else if (type == ResType::HC)
+	{
+		singleDataCols = 2;
+	}
 	const size_t valueCols = mxGetN(datasArray);
 	const size_t expectedCols = sensorNames.size() * singleDataCols;
 	if (valueCols != expectedCols) {
@@ -60,10 +70,11 @@ bool RWMAT::readMatFile(
 		return false;
 	}
 
-	// 5. 数据预处理
+	// 5. 数据预处理(固定前后各丢弃五秒数据fp.frequency * 5，同时在末尾再移除不能被频率及分段频率整除的部分redundancy)
 	const size_t valueRows = mxGetM(datasArray);
+	int redundancy = valueRows % (fp.frequency * SEGMENT_COUNT);
 	const size_t removeSize = std::min<size_t>(fp.frequency * 5, valueRows / 2);
-	fp.dataCount = valueRows - removeSize * 2;
+	fp.dataCount = valueRows - (removeSize * 2) - redundancy;
 	fp.startTime = QDateTime::currentDateTime();
 	fp.senseCount = 0;
 
@@ -86,14 +97,26 @@ bool RWMAT::readMatFile(
 		bool statsInitialized = false;
 
 		// 7.2 处理每行数据
-		for (size_t row = removeSize, newIdx = 0; row < valueRows - removeSize; ++row, ++newIdx) {
+		auto startSeq = removeSize;
+		auto endSeq = valueRows - removeSize - redundancy;
+		for (size_t row = removeSize, newIdx = 0; row < endSeq; ++row, ++newIdx) {
 			// 计算向量幅值
 			double dataValue = 0.0;
-			for (int col = 0; col < singleDataCols; ++col) {
-				const double val = resValues[(i * singleDataCols + col) * valueRows + row];
-				dataValue += val * val;
+			if (type == ResType::HC)
+			{
+				const double val0 = resValues[(i + 0) * valueRows + row] * 331.830718;
+				const double val1 = resValues[(i + 2) * valueRows + row] * 66.051984;
+				dataValue = std::abs(val0 - val1);
 			}
-			dataValue = std::sqrt(dataValue);
+			else
+			{
+				for (int col = 0; col < singleDataCols; ++col) {
+					const double val = resValues[(i * singleDataCols + col) * valueRows + row];
+					dataValue += val * val;
+				}
+				dataValue = std::sqrt(dataValue);
+			}
+
 
 			// 存储数据
 			newdata[newIdx] = dataValue;

@@ -2,8 +2,9 @@
 
 #include "PSDAnalyzer.h"
 
-BaseChart::~BaseChart()
+ChartPainter::~ChartPainter()
 {
+	//清理内存
 	for (auto it = _imgTimeSeries.begin(); it != _imgTimeSeries.end(); ++it) {
 		delete[] it.value();
 	}
@@ -20,7 +21,7 @@ BaseChart::~BaseChart()
 		segMap.clear();
 	}
 	_imgSegDataTimeSeries.clear();
-	
+
 	for (auto& segMap : _imgSegDataFrequencySpectrum) {
 		for (auto it = segMap.begin(); it != segMap.end(); ++it) {
 			delete[] it.value();
@@ -30,7 +31,97 @@ BaseChart::~BaseChart()
 	_imgSegDataFrequencySpectrum.clear();
 }
 
-void BaseChart::processSensorData(const QString& sensorName, double* sensorData, int dataCount, double frequency, QMap<QString, ScalableCustomPlot*>& timeSeriesMap, QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap)
+void ChartPainter::setData(const ExtraData& exdata)
+{
+	// 全局数据
+	for (auto iter = exdata.data.begin(); iter != exdata.data.end(); ++iter)
+	{
+		processSensorData(iter.key(), iter.value(), exdata.dataCount, exdata.frequency, _imgTimeSeries, _imgFrequencySpectrum);
+	}
+
+	if (!exdata.hasSegData)
+	{
+		return;
+	}
+
+	// 分段数据
+	auto segDataCount = exdata.segData.count();
+	_imgSegDataTimeSeries.resize(segDataCount);
+	_imgSegDataFrequencySpectrum.resize(segDataCount);
+	for (int i = 0; i < segDataCount; i++)
+	{
+		auto segData = exdata.segData[i];
+		for (auto segiter = segData.begin(); segiter != segData.end(); ++segiter)
+		{
+			processSensorData(segiter.key(), segiter.value(), exdata.dataCountEach, exdata.frequency, _imgSegDataTimeSeries[i], _imgSegDataFrequencySpectrum[i]);
+		}
+	}
+}
+
+void ChartPainter::save(const QString& dirpath, int width, int height)
+{
+	// 时域过程图和频谱分析图在逻辑上一定是一对一的
+	// 所以使用其中一个Key即可
+	QList<QString> keys = _imgTimeSeries.keys();
+	std::sort(keys.begin(), keys.end(), &numericCompare);
+
+	for (int i = 0; i < keys.count(); i++)
+	{
+		QPixmap tspixmap = _imgTimeSeries[keys[i]]->toPixmap(width, height);
+		QPixmap fspixmap = _imgFrequencySpectrum[keys[i]]->toPixmap(width, height);
+		QString savepathts = QString("%1/测点%2_时域图.png").arg(dirpath, keys[i]);
+		QString savepathfs = QString("%1/测点%2_频谱图.png").arg(dirpath, keys[i]);
+		tspixmap.save(savepathts);
+		fspixmap.save(savepathfs);
+
+		QPixmap combinedPixmap(width, height * 2);
+		QPainter painter(&combinedPixmap);
+		painter.drawPixmap(0, 0, tspixmap);
+		painter.drawPixmap(0, height, fspixmap);
+		QString savepath = QString("%1/测点%2.png").arg(dirpath, keys[i]);
+		combinedPixmap.save(savepath);
+	}
+}
+
+void ChartPainter::saveSeg(const QString& dirpath, int width, int height)
+{
+	auto count = _imgSegDataTimeSeries.size();
+	// 保存分段数据图
+	for (int i = 0; i < count; i++)
+	{
+		auto& tssegData = _imgSegDataTimeSeries[i];
+		auto& fssegData = _imgSegDataFrequencySpectrum[i];
+		QList<QString> keys = tssegData.keys();
+		std::sort(keys.begin(), keys.end(), &numericCompare);
+		for (int j = 0; j < keys.count(); j++)
+		{
+			QPixmap tspixmap = _imgSegDataTimeSeries[i][keys[j]]->toPixmap(width, height);
+			QPixmap fspixmap = _imgSegDataFrequencySpectrum[i][keys[j]]->toPixmap(width, height);
+			QString tssavepath = QString("%1/测点%2_时域图_段%3.png").arg(dirpath, keys[j], QString::number(i));
+			QString fssavepath = QString("%1/测点%2_频谱图_段%3.png").arg(dirpath, keys[j], QString::number(i));
+			tspixmap.save(tssavepath);
+			fspixmap.save(fssavepath);
+
+			QPixmap combinedPixmap(width, height * 2);
+			QPainter painter(&combinedPixmap);
+			painter.drawPixmap(0, 0, tspixmap);
+			painter.drawPixmap(0, height, fspixmap);
+			QString savepath = QString("%1/测点%2_段%3.png").arg(dirpath, keys[j], QString::number(i));
+			combinedPixmap.save(savepath);
+		}
+
+	}
+
+}
+
+void ChartPainter::processSensorData(
+	const QString& sensorName,
+	double* sensorData,
+	int dataCount,
+	double frequency,
+	QMap<QString, ScalableCustomPlot*>& timeSeriesMap,
+	QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap
+)
 {
 	// 准备Y轴数据
 	QVector<double> fluctuation;
@@ -62,6 +153,7 @@ void BaseChart::processSensorData(const QString& sensorName, double* sensorData,
 	}
 	else {
 		qWarning() << "No valid data for sensor:" << sensorName;
+		return;
 	}
 	// 创建频谱图
 	QVector<double> freqs;
@@ -86,93 +178,7 @@ void BaseChart::processSensorData(const QString& sensorName, double* sensorData,
 	frequencySpectrumMap[sensorName] = fschart;
 }
 
-void BaseChart::setData(const ExtraData& exdata)
-{
-	// 全局数据
-	for (auto iter = exdata.data.begin(); iter != exdata.data.end(); ++iter)
-	{
-		auto sensorName = iter.key();
-		auto sensorData = iter.value();
-		processSensorData(sensorName, sensorData, exdata.dataCount, exdata.frequency, _imgTimeSeries, _imgFrequencySpectrum);
-	}
-
-	if (!exdata.hasSegData)
-	{
-		return;
-	}
-
-	// 分段数据
-	_imgSegDataTimeSeries.resize(exdata.segData.count());
-	_imgSegDataFrequencySpectrum.resize(exdata.segData.count());
-	for (int i = 0; i < exdata.segData.count(); i++)
-	{
-		auto segData = exdata.segData[i];
-		for (auto segiter = segData.begin(); segiter != segData.end(); ++segiter)
-		{
-			auto sensorName = segiter.key();
-			auto sensorData = segiter.value();
-			processSensorData(sensorName, sensorData, exdata.dataCountEach, exdata.frequency, _imgSegDataTimeSeries[i], _imgSegDataFrequencySpectrum[i]);
-		}
-	}
-}
-
-void BaseChart::save(const QString& dirpath, int width, int height)
-{
-	// 时域过程图和频谱分析图在逻辑上一定是一对一的
-	// 所以使用其中一个Key即可
-	QList<QString> keys = _imgTimeSeries.keys();
-	std::sort(keys.begin(), keys.end(), &numericCompare);
-
-	for (int i = 0; i < keys.count(); i++)
-	{
-		QPixmap tspixmap = _imgTimeSeries[keys[i]]->toPixmap(width, height);
-		QPixmap fspixmap = _imgFrequencySpectrum[keys[i]]->toPixmap(width, height);
-		QString savepathts = QString("%1/测点%2_时域图.png").arg(dirpath, keys[i]);
-		QString savepathfs = QString("%1/测点%2_频谱图.png").arg(dirpath, keys[i]);
-		tspixmap.save(savepathts);
-		fspixmap.save(savepathfs);
-
-		QPixmap combinedPixmap(width, height * 2);
-		QPainter painter(&combinedPixmap);
-		painter.drawPixmap(0, 0, tspixmap);
-		painter.drawPixmap(0, height, fspixmap);
-		QString savepath = QString("%1/测点%2.png").arg(dirpath, keys[i]);
-		combinedPixmap.save(savepath);
-	}
-}
-
-void BaseChart::saveSeg(const QString& dirpath, int width, int height)
-{
-	auto count = _imgSegDataTimeSeries.size();
-	// 保存分段数据图
-	for (int i = 0; i < count; i++)
-	{
-		auto& tssegData = _imgSegDataTimeSeries[i];
-		auto& fssegData = _imgSegDataFrequencySpectrum[i];
-		QList<QString> keys = tssegData.keys();
-		std::sort(keys.begin(), keys.end(), &numericCompare);
-		for (int j = 0; j < keys.count(); j++)
-		{
-			QPixmap tspixmap = _imgSegDataTimeSeries[i][keys[j]]->toPixmap(width, height);
-			QPixmap fspixmap = _imgSegDataFrequencySpectrum[i][keys[j]]->toPixmap(width, height);
-			QString tssavepath = QString("%1/测点%2_时域图_段%3.png").arg(dirpath, keys[j], QString::number(i));
-			QString fssavepath = QString("%1/测点%2_频谱图_段%3.png").arg(dirpath, keys[j], QString::number(i));
-			tspixmap.save(tssavepath);
-			fspixmap.save(fssavepath);
-
-			QPixmap combinedPixmap(width, height * 2);
-			QPainter painter(&combinedPixmap);
-			painter.drawPixmap(0, 0, tspixmap);
-			painter.drawPixmap(0, height, fspixmap);
-			QString savepath = QString("%1/测点%2_段%3.png").arg(dirpath, keys[j], QString::number(i));
-			combinedPixmap.save(savepath);
-		}
-
-	}
-
-}
-
-ScalableCustomPlot* MagChart::paintMagChart(
+ScalableCustomPlot* MagChartPainter::paintMagChart(
 	const QString& title,
 	const QString& xlabel,
 	const QString& ylabel,

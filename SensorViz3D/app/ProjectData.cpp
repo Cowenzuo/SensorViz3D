@@ -71,28 +71,29 @@ bool ProjectData::save(const QString& saveDir, const QString& filename)
 	resFloderInfo.append({ "位移",ResType::VD });
 	resFloderInfo.append({ "应变",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
+	resFloderInfo.append({ "启闭力",ResType::HC });
 	QStringList digits = { "二", "三", "四","五", "六", "七", "八", "九" };//"一",固定被工况所使用
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
 	{
 		auto folder = resFloderInfo[i];
 		auto folderFullpath = getFullPathFromDirByAppointFolder(folder.first, _rootDirPath);
 		QMap<QString, ExtraData> exdatas;
-		QMap<QString, BaseChart*> charts;
+		QMap<QString, ChartPainter*> charts;
 		if (!loadAnalyseDataFile(folderFullpath, wcs, exdatas, charts, folder.second))
 		{
-			qDebug() << "Loading resource data failed. file:" << folderFullpath;
+			qDebug() << "Loading resource data failed. floder:" << folder.first << " file:" << folderFullpath;
 			continue;
 		}
+		qDebug() << "Start process :" << folder.first;
 		QString name;
 		QString unit;
-		int datacol;
-		getResTypeInfo(folder.second, name, unit, datacol);
+		getResTypeInfo(folder.second, name, unit);
 		if (!saveAnalyseDataToDocx(doc, selection, digits[i], name, unit, wcs, exdatas, charts))
 		{
 			qDebug() << "Save analyse data to docx failed. floder:" << folder.first;
 			continue;
 		}
-		foreach(auto var ,charts)
+		foreach(auto var, charts)
 		{
 			delete var;
 		}
@@ -405,43 +406,44 @@ bool ProjectData::saveWorkingConditionsToDocx(
 	return true;
 }
 
-void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit, int& datacol)
+void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 {
 	switch (type)
 	{
-	case ProjectData::ResType::FP:
+	case ResType::FP:
 	{
-		datacol = 1;
 		name = "脉动压力";
 		unit = "KPa";
 		break;
 	}
-	case ProjectData::ResType::VA:
+	case ResType::VA:
 	{
-		datacol = 3;
 		name = "振动加速度";
 		unit = "m/s²";
 		break;
 	}
-	case ProjectData::ResType::VD:
+	case ResType::VD:
 	{
-		datacol = 3;
 		name = "振动位移";
 		unit = "m";
 		break;
 	}
-	case ProjectData::ResType::Strain:
+	case ResType::Strain:
 	{
-		datacol = 1;
 		name = "应变";
 		unit = "MPa";
 		break;
 	}
-	case ProjectData::ResType::OP:
+	case ResType::OP:
 	{
-		datacol = 1;
 		name = "油压";
 		unit = "MPa";
+		break;
+	}
+	case ResType::HC:
+	{
+		name = "启闭力";
+		unit = "kN";
 		break;
 	}
 	default:
@@ -453,103 +455,129 @@ bool ProjectData::loadAnalyseDataFile(
 	const QString& dirPath,
 	const QMap<QString, WorkingConditions>& allwcs,
 	QMap<QString, ExtraData>& exdatas,
-	QMap<QString, BaseChart*>& charts,
+	QMap<QString, ChartPainter*>& charts,
 	ResType type
 )
 {
-	//固定读取当前文件夹下的一个名为settings文件，内容为传感器名称
-	QFile file(dirPath + "/settings");
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-	{
-		qDebug() << "Failed to open file: " << file.fileName();
+	// 1. 读取配置文件
+	QFile settingsFile(dirPath + "/settings");
+	if (!settingsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		qWarning() << "Failed to open settings file:" << settingsFile.fileName();
 		return false;
 	}
-	QTextStream in(&file);
+
+	QTextStream in(&settingsFile);
 	in.setCodec("utf-8");
-	QString line0 = in.readLine();
-	QStringList sensorNames = line0.split(",");
-	QString line1 = in.readLine();
-	QStringList sensorValid = line1.split(",");
-	QString line2 = in.readLine();
-	QStringList segwcnames = line2.split(",");
-	file.close();
 
-	QString resTitle = "";
-	QString resUnit = "";
+	// 读取配置文件内容
+	const QStringList sensorNames = in.readLine().split(",");  // 传感器名称列表
+	const QStringList sensorValid = in.readLine().split(",");  // 传感器有效性标记
+	const QStringList segwcnames = in.readLine().split(",");   // 需要分段的工况名称
+	settingsFile.close();
+	if (sensorNames.isEmpty() || sensorValid.isEmpty() || segwcnames.isEmpty()) {
+		qWarning() << "Invalid settings file format";
+		return false;
+	}
+
+	// 2. 根据资源类型获取相关信息
+	QString resTitle, resUnit;
 	int singleDataCols = 1;
-	getResTypeInfo(type, resTitle, resUnit, singleDataCols);
+	getResTypeInfo(type, resTitle, resUnit);
 
+	// 3. 处理目录下的所有MAT文件
 	QDir resDir(dirPath);
-	QStringList matFiles = resDir.entryList(QStringList() << "*.mat", QDir::Files);
-	foreach(const QString & matFile, matFiles) {
-		//通过文件名在工况列表中查找对应的工况
-		QString wcName = QFileInfo(matFile).baseName();
-		if (!allwcs.contains(wcName) /*|| _workingConditions[wcName].type == 0*/) {
+	const QStringList matFiles = resDir.entryList(QStringList() << "*.mat", QDir::Files);
+	for (const QString& matFile : matFiles) {
+		// 3.1 验证工况有效性
+		const QString wcName = QFileInfo(matFile).baseName();
+		if (!allwcs.contains(wcName)) {
+			qDebug() << "Skipping mat file with unmatched working condition:" << matFile;
 			continue;
 		}
-		qDebug() << "Loading mat file: " << resDir.absoluteFilePath(matFile);
+		qDebug() << "Processing mat file:" << resDir.absoluteFilePath(matFile);
+
+		// 3.2 读取MAT文件数据
 		ExtraData exdata;
 		exdata.wcname = wcName;
 
-		if (!RWMAT::readMatFile(resDir.filePath(matFile), sensorNames, sensorValid, singleDataCols, exdata))
-		{
-			qWarning() << "Failed to load mat file: " << matFile;
+		if (!RWMAT::readMatFile(exdata, resDir.filePath(matFile), sensorNames, sensorValid, type)) {
+			qWarning() << "Failed to load mat file:" << matFile;
 			continue;
 		}
 
-		exdata.hasSegData = segwcnames.contains(wcName);
+		// 3.3 处理分段数据（如果需要）
+		processSegmentedData(exdata, wcName, segwcnames, sensorNames, sensorValid);
 
-		const int segmentSize = exdata.dataCount / SEGMENT_COUNT;
-		if (segmentSize < 1) {
-			qWarning() << "Data count too small for segmentation in file:" << matFile;
-			continue;
-		}
-		const int offset = qMax(0, (segmentSize / 2) - 1);  // 确保offset非负
-		exdata.dataCountEach = offset;
-
-		for (int i = 0; i < SEGMENT_COUNT - 1; i++)
-		{
-			QMap<QString, double*>segData{};
-			QMap<QString, Statistics>segStatistics{};
-			for (auto& sensorName : sensorNames)
-			{
-				if (!exdata.data.contains(sensorName))
-				{
-					continue;
-				}
-				double* data = new double[segmentSize];
-				for (int j = 0; j < segmentSize; j++)
-				{
-					data[j] = exdata.data[sensorName][i * segmentSize + j + offset];
-					if (exdata.hasSegData)
-					{
-						//统计最大值、最小值、均方根
-						if (j == 0) {
-							segStatistics[sensorName].max = data[j];
-							segStatistics[sensorName].min = data[j];
-							segStatistics[sensorName].rms = data[j] * data[j];
-						}
-						else {
-							segStatistics[sensorName].max = qMax(segStatistics[sensorName].max, data[j]);
-							segStatistics[sensorName].min = qMin(segStatistics[sensorName].min, data[j]);
-							segStatistics[sensorName].rms += data[j] * data[j];
-						}
-					}
-				}
-				if (exdata.hasSegData)
-					segStatistics[sensorName].rms = sqrt(segStatistics[sensorName].rms / segmentSize);
-				segData[sensorName] = data;
-			}
-			exdata.segData.append(segData);
-			if (exdata.hasSegData)
-				exdata.segStatistics.append(segStatistics);
-		}
-		BaseChart* chart = new BaseChart(resTitle, resUnit);
+		// 3.4 创建并配置图表
+		ChartPainter* chart = new ChartPainter(resTitle, resUnit);
 		chart->setData(exdata);
+
+		// 3.5 存储结果
 		exdatas[wcName] = exdata;
 		charts[wcName] = chart;
 	}
 	return true;
+}
+
+void ProjectData::processSegmentedData(
+	ExtraData& exdata,
+	const QString& wcName,
+	const QStringList& segwcnames,
+	const QStringList& sensorNames,
+	const QStringList& sensorValid
+)
+{
+	exdata.hasSegData = segwcnames.contains(wcName);
+	if (!exdata.hasSegData || exdata.dataCount < SEGMENT_COUNT) {
+		return;
+	}
+
+	const int segmentSize = exdata.dataCount / SEGMENT_COUNT;
+	const int offset = segmentSize / 2;
+	exdata.dataCountEach = offset;
+
+	// 分段处理（总段数-1，因为每段是相邻两段的中间区域）
+	for (int i = 0; i < SEGMENT_COUNT - 1; i++) {
+		QMap<QString, double*> segData;
+		QMap<QString, Statistics> segStatistics;
+
+		for (int si = 0; si < sensorNames.size(); ++si) {
+			if (sensorValid[si] != "1") {
+				continue;
+			}
+			auto sensorName = sensorNames[si];
+			// 分配内存并复制数据
+			double* data = new double[segmentSize];
+			const int startIdx = i * segmentSize + offset;
+
+			// 初始化统计信息
+			Statistics stats;
+			stats.max = exdata.data[sensorName][startIdx];
+			stats.min = exdata.data[sensorName][startIdx];
+			stats.rms = 0.0;
+
+			// 处理每个数据点
+			for (int j = 0; j < segmentSize; j++) {
+				const double value = exdata.data[sensorName][startIdx + j];
+				data[j] = value;
+
+				// 更新统计信息
+				stats.max = qMax(stats.max, value);
+				stats.min = qMin(stats.min, value);
+				stats.rms += value * value;
+			}
+
+			// 完成RMS计算
+			stats.rms = sqrt(stats.rms / segmentSize);
+
+			// 存储结果
+			segData[sensorName] = data;
+			segStatistics[sensorName] = stats;
+		}
+
+		exdata.segData.append(segData);
+		exdata.segStatistics.append(segStatistics);
+	}
 }
 
 bool ProjectData::saveAnalyseDataToDocx(
@@ -560,7 +588,7 @@ bool ProjectData::saveAnalyseDataToDocx(
 	const QString& unit,
 	const QMap<QString, WorkingConditions>& wcs,
 	const QMap<QString, ExtraData>& exdatas,
-	const QMap<QString, BaseChart*>& charts
+	const QMap<QString, ChartPainter*>& charts
 )
 {
 	if (exdatas.isEmpty() || charts.isEmpty())
@@ -683,9 +711,9 @@ bool ProjectData::saveAnalyseDataToDocx(
 		}
 		skipTable(selection);
 
-		auto chartMax = MagChart::paintMagChart(titlename + "最大值对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorMaxValue);
-		auto chartMin = MagChart::paintMagChart(titlename + "最小值对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorMinValue);
-		auto chartRms = MagChart::paintMagChart(titlename + "均方根对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorRmsValue);
+		auto chartMax = MagChartPainter::paintMagChart(titlename + "最大值对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorMaxValue);
+		auto chartMin = MagChartPainter::paintMagChart(titlename + "最小值对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorMinValue);
+		auto chartRms = MagChartPainter::paintMagChart(titlename + "均方根对比分析", "闸门开度", QString("%1(%2)").arg(titlename, unit), wcsSeg, sensorsName, sensorRmsValue);
 		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, dataWcs[i].name);
 		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, dataWcs[i].name);
 		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, dataWcs[i].name);
