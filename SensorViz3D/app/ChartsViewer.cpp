@@ -1,13 +1,41 @@
 #include "ChartsViewer.h"
+#include "ui_ChartsViewer.h"
 
-ChartsViewer::ChartsViewer(QWidget *parent)
-	: QWidget(parent)
-	, ui(new Ui::ChartsViewerClass())
+#include <QDesktopWidget>
+
+ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::ChartsViewerClass())
 {
 	ui->setupUi(this);
+	setAttribute(Qt::WA_StyledBackground);
+
+	ui->headerWidget->setMenuButtonVisible(false);
+	ui->headerWidget->setTitleVisible(false);
 }
 
 ChartsViewer::~ChartsViewer()
 {
 	delete ui;
+}
+
+void ChartsViewer::changeEvent(QEvent* event)
+{
+	if (event->type() == QEvent::WindowStateChange) {
+		// 解决最大化/还原时右上角按钮不能正确显示的问题
+		if (this->windowState() == Qt::WindowNoState) {
+			ui->headerWidget->handleWindowNormalState();
+		}
+		else if (this->windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
+			ui->headerWidget->handleWindowMaximizedState();
+		}
+	}
+	QWidget::changeEvent(event);
+}
+
+bool ChartsViewer::hitTestCaption(const QPoint& pos)
+{
+	QWidget* clickedWidget = childAt(pos);
+	if (clickedWidget == ui->headerWidget && pos.y() < ui->headerWidget->height()) {
+		return ui->headerWidget->hitTestCaption(ui->headerWidget->mapFrom(this, pos));
+	}
+	return NativeBaseWindow::hitTestCaption(pos);
 }

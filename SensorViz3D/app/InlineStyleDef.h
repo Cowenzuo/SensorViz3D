@@ -115,5 +115,49 @@
         OpeMessageBox QDialogButtonBox QPushButton:focus:pressed {
             border-image: url(:/image/common/button/primary_hover.png) 4px;
         }
+ )"
 
+#define ComboBoxStyle R"(
+        QComboBox {
+        	border-image: url(:/image/common/combobox/bg.png) 4px;
+        	border-width: 4px;
+        	color: #FFFFFF;
+        	height: 24px;
+            padding: 0 4px;
+        }
+        QComboBox:hover {
+        	border-image: url(:/image/common/combobox/bg_hover.png) 4px;
+        }
+        QComboBox:focus {
+        	border-image: url(:/image/common/combobox/bg_focus.png) 4px;
+        }
+        QComboBox:disabled {
+        	border-image: url(:/image/common/combobox/bg_disabled.png) 4px;
+        }
+        QComboBox::drop-down {
+            subcontrol-origin: padding;
+            subcontrol-position: center right;
+            width: 30px;
+            height: 30px;
+        	image: url(:/image/common/combobox/drop_down.png);
+        }
+        QComboBox::drop-down:hover {
+        	image: url(:/image/common/combobox/drop_down_hover.png);
+        }
+        QComboBox::drop-down:disabled {
+        	image: url(:/image/common/combobox/drop_down_disabled.png);
+        }
+        QComboBox::drop-down:on {
+        	image: url(:/image/common/combobox/drop_down_on.png);
+        }
+        QComboBox::drop-down:on:hover {
+        	image: url(:/image/common/combobox/drop_down_on_hover.png);
+        }
+        QComboBox QListView {
+        	border: 1px solid #293447;
+        	background: #21252E;
+        	color: rgba(255, 255, 255, 1);
+        	font-size: 14px;
+        	padding: 5px 5px;
+        }
  )"

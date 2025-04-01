@@ -17,10 +17,6 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 	QApplication::setApplicationDisplayName("实验平台");
 	QApplication::setWindowIcon(QIcon(":/image/logo.png"));
 
-	_projectData = new ProjectData();
-	_chartsViewer = new ChartsViewer();
-	_mainWindow = new MainWindow();
-
 	QTranslator* translator = new QTranslator(this);
 	if (translator->load(QString("translations/qt_zh_CN.qm")))
 	{
@@ -32,8 +28,12 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 		+ QString(MenuStyle)
 		+ QString(BaseDialogStyle)
 		+ QString(MsgBoxStyle)
+		+ QString(ComboBoxStyle)
 	);
 
+	_projectData = new ProjectData();
+	_chartsViewer = new ChartsViewer();
+	_mainWindow = new MainWindow();
 }
 
 Application::~Application()

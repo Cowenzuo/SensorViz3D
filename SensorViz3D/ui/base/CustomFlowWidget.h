@@ -15,7 +15,7 @@ class CustomFlowWidget : public QWidget {
   Q_OBJECT
  private:
   QScrollArea *_scrollArea;
-  QWidget *_contentWiget;
+  QWidget *_contentWidget;
   QVector<QWidget *> _items;
   int _itemSuitableWidth;
   int _itemSuitableHeight;

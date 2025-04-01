@@ -1,20 +1,22 @@
 #pragma once
-
-#include <QWidget>
-#include "ui_ChartsViewer.h"
+#include "ui/base/NativeBaseWindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class ChartsViewerClass; };
 QT_END_NAMESPACE
 
-class ChartsViewer : public QWidget
+class ChartsViewer : public NativeBaseWindow
 {
 	Q_OBJECT
 
 public:
-	ChartsViewer(QWidget *parent = nullptr);
-	~ChartsViewer();
+	ChartsViewer(QWidget* parent = nullptr);
+	virtual~ChartsViewer();
+
+protected:
+	void changeEvent(QEvent* event) override;
+	bool hitTestCaption(const QPoint& pos) override;
 
 private:
-	Ui::ChartsViewerClass *ui;
+	Ui::ChartsViewerClass* ui;
 };

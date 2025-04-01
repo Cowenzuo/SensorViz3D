@@ -35,5 +35,14 @@
         <file>image/common/button/secondary.png</file>
         <file>image/common/button/secondary_disabled.png</file>
         <file>image/common/button/secondary_hover.png</file>
+        <file>image/common/combobox/bg.png</file>
+        <file>image/common/combobox/bg_disabled.png</file>
+        <file>image/common/combobox/bg_focus.png</file>
+        <file>image/common/combobox/bg_hover.png</file>
+        <file>image/common/combobox/drop_down.png</file>
+        <file>image/common/combobox/drop_down_disabled.png</file>
+        <file>image/common/combobox/drop_down_hover.png</file>
+        <file>image/common/combobox/drop_down_on.png</file>
+        <file>image/common/combobox/drop_down_on_hover.png</file>
     </qresource>
 </RCC>
