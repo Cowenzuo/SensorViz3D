@@ -57,23 +57,50 @@ enum class ResType { FP, VA, VD, Strain, OP, HC };
 
 class ChartPainter;
 class FPChart;
+
+struct AnalyseData
+{
+	ExtraData exData;
+	ChartPainter* charts;
+};
 class ProjectData : public QObject
 {
 	Q_OBJECT
+private:
+	QString _saveDirPath{};
+	QString _rootDirPath{};
+	QString _rootName{};
+
+	QMap<QString, WorkingConditions> _workingConditions;
+	QMap<ResType, QMap<QString, AnalyseData>> _analyseDatas;
 public:
-	ProjectData(QObject* parent);
+	ProjectData(QObject* parent = nullptr);
 	~ProjectData();
 
 	// 主要逻辑上是设置原始数据包的路径，如果savePath、save都给了，会自动执行读取、处理、存储操作
 	// dirPath:	给入原始数据包的文件夹，这个文件夹应该包含"工况列表"、"应变"等Mat数据文件夹
 	// savePath:给入希望保存到的文件夹路径，必须是文件夹
-	// save:	是否保存
+	// saveBackground:	是否保存
 	bool setDataPackage(const QString& dirPath, const QString& savePath = QString(), bool save = false);
+
 	// 必须后于setDataPackage执行，内部执行相应数据的读取、处理、存储操作
+	// 额外注意点，这个接口是为了可视化的逻辑而准备的，会一次性把所有数据与处理好数据都加载到内存里
+	// 以便快速查看，通常会达到几个G的占用，源数据文件越大，占用越多，会有个极限，暂时没有测出来
+	// Tips：优化方案也有，暂时没时间改了，希望将saveBackground逻辑都合并起来
+	bool loadForVisual();
+
+	// 必须后于setDataPackage执行，内部执行相应数据的读取、处理、存储操作
+	// 额外注意点，这个接口除了需要setDataPackage外，其他都不依赖，为了后台静默运行准备的
+	// 这个按顺序执行，处理完一个维度就释放内存，以确保真的遇到了大量数据集，不会发生内存直接爆炸的情况
+	// 不用按常规可视化逻辑，让每一个维度数据的内存都是常驻，不太合理
 	// saveDir:		给入希望保存到的文件夹路径，必须是文件夹
 	// filename:	最终docx的文件名，不用带后缀，过程性文件直接使用内置命名，暂时未开放接口干预操作
-	bool save(const QString& saveDir, const QString& filename);
+	//				若为空直接将会使用setDataPackage时候获取的数据包文件夹名字作为文件名
+	bool saveBackground(const QString& saveDir, const QString& filename = QString{});
 
+	QString getRootDirpath();
+	QString getRootName();
+	QString getSaveDirpath();
 private:
 	//初始化和Ms office的交互
 	bool initWordDocment(
@@ -117,8 +144,7 @@ private:
 	bool loadAnalyseDataFile(
 		const QString& dirPath,
 		const QMap<QString, WorkingConditions>& wc,
-		QMap<QString, ExtraData>& exdata,
-		QMap<QString, ChartPainter*>& charts,
+		QMap<QString, AnalyseData>& analyseData,
 		ResType type
 	);
 	/**
@@ -148,14 +174,12 @@ private:
 		const QString& titlename,
 		const QString& unit,
 		const QMap<QString, WorkingConditions>& wcs,
-		const QMap<QString, ExtraData>& exdatas,
-		const QMap<QString, ChartPainter*>& charts
+		QMap<QString, AnalyseData>& analyseData
 	);
 private:
 	//辅助函数：纯定制，无通用性，只是为了方遍从一个rootDir中提取出文件夹名字为foldername的完整文件夹路径
 	QString getFullPathFromDirByAppointFolder(const QString& foldername, QDir rootDir);
 	void clearExtraData(ExtraData& extra);
-	void clearExdatas(QMap<QString, ExtraData>& exdatas);
 private:
 	//以下为写入Docx时的辅助函数，纯定制，无通用性，只是为了该项目读写数据文件使用
 	enum class ParagraphFormat {
@@ -179,10 +203,7 @@ private:
 	void mergeCells(QAxObject* table, int row1, int col1, int row2, int col2);
 	//当表格输入完成后，一定要调用一下这个函数，以使光标Selection脱离Table的区域
 	void skipTable(QAxObject* selection);
-private:
-	QString _saveDirPath{};
-	QString _rootDirPath{};
-	QString _rootName{};
+
 };
 
 //排序辅助函数，纯定制，且只能通过对比key的str转int后的升序排列

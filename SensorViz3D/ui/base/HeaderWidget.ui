@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>HeaderWidgetClass</class>
+ <widget class="QWidget" name="HeaderWidgetClass">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1741</width>
+    <height>66</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>HeaderWidget</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#windowCtrlWidget QPushButton {
+    border: none;
+    width: 40px;
+    height: 40px;
+}
+#placeholderWidget{
+    border-image: url(:/image/HeaderWidget/product_title.png);
+}
+#minBtn {
+    border-image: url(:/image/HeaderWidget/min.png);
+}
+#minBtn:hover {
+    border-image: url(:/image/HeaderWidget/min_hover.png);
+}
+#minBtn:pressed {
+    border-image: url(:/image/HeaderWidget/min_pressed.png);
+}
+#maxBtn {
+    border-image: url(:/image/HeaderWidget/max.png);
+}
+#maxBtn:hover {
+    border-image: url(:/image/HeaderWidget/max_hover.png);
+}
+#maxBtn:pressed {
+    border-image: url(:/image/HeaderWidget/max_pressed.png);
+}
+#restoreBtn {
+    border-image: url(:/image/HeaderWidget/restore.png);
+}
+#restoreBtn:hover {
+    border-image: url(:/image/HeaderWidget/restore_hover.png);
+}
+#restoreBtn:pressed {
+    border-image: url(:/image/HeaderWidget/restore_pressed.png);
+}
+#closeBtn {
+    border-image: url(:/image/HeaderWidget/close.png);
+}
+#closeBtn:hover {
+    border-image: url(:/image/HeaderWidget/close_hover.png);
+}
+#closeBtn:pressed {
+    border-image: url(:/image/HeaderWidget/close_pressed.png);
+}
+#titleLbl {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+}
+#menuBtn {
+	width: 40px;
+	height: 40px;
+	border-image: url(:/image/HeaderWidget/menu.png);
+}
+#menuBtn:hover {
+	border-image: url(:/image/HeaderWidget/menu_hover.png);
+}
+#menuBtn:checked {
+	border-image: url(:/image/HeaderWidget/menu_checked.png);
+}
+
+</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout_7">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QWidget" name="placeholderWidget" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>230</width>
+       <height>0</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QWidget" name="leftToolsWidget" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <property name="spacing">
+           <number>10</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="menuBtn">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>13</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="titleLbl">
+       <property name="text">
+        <string>未命名文件*</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>13</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QWidget" name="rightToolsWidget" native="true">
+         <property name="mouseTracking">
+          <bool>false</bool>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <property name="spacing">
+           <number>84</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QWidget" name="windowCtrlWidget" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>7</number>
+      </property>
+      <property name="rightMargin">
+       <number>23</number>
+      </property>
+      <property name="bottomMargin">
+       <number>7</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="minBtn">
+        <property name="toolTip">
+         <string>最小化</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="maxBtn">
+        <property name="toolTip">
+         <string>最大化</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="restoreBtn">
+        <property name="toolTip">
+         <string>还原</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="closeBtn">
+        <property name="toolTip">
+         <string>关闭</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources>
+  <include location="../../SensorViz3D.qrc"/>
+ </resources>
+ <connections/>
+</ui>

@@ -31,10 +31,45 @@ bool ProjectData::setDataPackage(const QString& dirPath, const QString& savePath
 	if (!save)
 		return true;
 
-	return this->save(savePath, _rootName);
+	return this->saveBackground(savePath, _rootName);
 }
 
-bool ProjectData::save(const QString& saveDir, const QString& filename)
+bool ProjectData::loadForVisual()
+{
+	if (_rootDirPath.isEmpty() || _rootName.isEmpty())
+	{
+		qDebug() << "You need to set data package first.";
+		return false;
+	}
+	if (!loadWorkingConditions(getFullPathFromDirByAppointFolder("工况列表", _rootDirPath), _workingConditions))
+	{
+		qDebug() << "Loading working conditions failed.";
+		return false;
+	}
+	QVector<QPair<QString, ResType>>resFloderInfo;
+	resFloderInfo.append({ "脉动压力",ResType::FP });
+	resFloderInfo.append({ "加速度",ResType::VA });
+	resFloderInfo.append({ "位移",ResType::VD });
+	resFloderInfo.append({ "应变",ResType::Strain });
+	resFloderInfo.append({ "油压",ResType::OP });
+	resFloderInfo.append({ "启闭力",ResType::HC });
+	for (auto i = 0;i < resFloderInfo.count(); ++i)
+	{
+		auto folder = resFloderInfo[i];
+		auto folderFullpath = getFullPathFromDirByAppointFolder(folder.first, _rootDirPath);
+		QMap<QString, AnalyseData> analyseDatas;
+		qDebug() << "Start process :" << folder.first;
+		if (!loadAnalyseDataFile(folderFullpath, _workingConditions, analyseDatas, folder.second))
+		{
+			qDebug() << "Loading resource data failed. floder:" << folder.first << " file:" << folderFullpath;
+			continue;
+		}
+		_analyseDatas[folder.second] = analyseDatas;
+	}
+	return true;
+}
+
+bool ProjectData::saveBackground(const QString& saveDir, const QString& filename)
 {
 	QDir exportRootDir(saveDir);
 	if (!exportRootDir.exists())
@@ -77,31 +112,30 @@ bool ProjectData::save(const QString& saveDir, const QString& filename)
 	{
 		auto folder = resFloderInfo[i];
 		auto folderFullpath = getFullPathFromDirByAppointFolder(folder.first, _rootDirPath);
-		QMap<QString, ExtraData> exdatas;
-		QMap<QString, ChartPainter*> charts;
-		if (!loadAnalyseDataFile(folderFullpath, wcs, exdatas, charts, folder.second))
+		QMap<QString, AnalyseData> analyseDatas;
+		qDebug() << "Start process :" << folder.first;
+		if (!loadAnalyseDataFile(folderFullpath, wcs, analyseDatas, folder.second))
 		{
 			qDebug() << "Loading resource data failed. floder:" << folder.first << " file:" << folderFullpath;
 			continue;
 		}
-		qDebug() << "Start process :" << folder.first;
 		QString name;
 		QString unit;
 		getResTypeInfo(folder.second, name, unit);
-		if (!saveAnalyseDataToDocx(doc, selection, digits[i], name, unit, wcs, exdatas, charts))
+		if (!saveAnalyseDataToDocx(doc, selection, digits[i], name, unit, wcs, analyseDatas))
 		{
 			qDebug() << "Save analyse data to docx failed. floder:" << folder.first;
 			continue;
 		}
-		foreach(auto var, charts)
+		foreach(auto var, analyseDatas)
 		{
-			delete var;
+			clearExtraData(var.exData);
+			delete var.charts;
 		}
-		clearExdatas(exdatas);
 		qDebug() << "Save analyse data to docx succeed. floder:" << folder.first;
 	}
 
-	QString filesavepath = QString("%1/%2.docx").arg(saveDir, filename);
+	QString filesavepath = QString("%1/%2.docx").arg(saveDir, filename.isEmpty() ? _rootName : filename);
 	if (!saveAndFreeWordDocment(filesavepath, doc, writer))
 	{
 		qDebug() << "Writting docx failed. path:" << filesavepath;
@@ -109,6 +143,21 @@ bool ProjectData::save(const QString& saveDir, const QString& filename)
 	qDebug() << "Writting docx succeed. path:" << filesavepath;
 	qDebug() << "All done.";
 	return true;
+}
+
+QString ProjectData::getRootDirpath()
+{
+	return _rootDirPath;
+}
+
+QString ProjectData::getRootName()
+{
+	return _rootName;
+}
+
+QString ProjectData::getSaveDirpath()
+{
+	return _saveDirPath;
 }
 
 bool ProjectData::initWordDocment(
@@ -454,8 +503,7 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 bool ProjectData::loadAnalyseDataFile(
 	const QString& dirPath,
 	const QMap<QString, WorkingConditions>& allwcs,
-	QMap<QString, ExtraData>& exdatas,
-	QMap<QString, ChartPainter*>& charts,
+	QMap<QString, AnalyseData>& analyseData,
 	ResType type
 )
 {
@@ -513,8 +561,7 @@ bool ProjectData::loadAnalyseDataFile(
 		chart->setData(exdata);
 
 		// 3.5 存储结果
-		exdatas[wcName] = exdata;
-		charts[wcName] = chart;
+		analyseData[wcName] = { exdata ,chart };
 	}
 	return true;
 }
@@ -587,11 +634,10 @@ bool ProjectData::saveAnalyseDataToDocx(
 	const QString& titlename,
 	const QString& unit,
 	const QMap<QString, WorkingConditions>& wcs,
-	const QMap<QString, ExtraData>& exdatas,
-	const QMap<QString, ChartPainter*>& charts
+	QMap<QString, AnalyseData>& analyseData
 )
 {
-	if (exdatas.isEmpty() || charts.isEmpty())
+	if (analyseData.isEmpty())
 	{
 		return false;
 	}
@@ -609,13 +655,13 @@ bool ProjectData::saveAnalyseDataToDocx(
 
 	QStringList sensorsName;
 	WorkingConditionsList dataWcs;
-	QStringList dataWcNames = exdatas.keys();
+	QStringList dataWcNames = analyseData.keys();
 	std::sort(dataWcNames.begin(), dataWcNames.end(), &numericCompare);
 	for (int i = 0; i < dataWcNames.count(); i++) {
 		dataWcs.push_back(wcs[dataWcNames[i]]);
 		if (0 == i)
 		{
-			const auto& fps = exdatas[dataWcNames[i]].statistics;
+			const auto& fps = analyseData[dataWcNames[i]].exData.statistics;
 			sensorsName = fps.keys();
 			std::sort(sensorsName.begin(), sensorsName.end(), &numericCompare);
 		}
@@ -623,7 +669,7 @@ bool ProjectData::saveAnalyseDataToDocx(
 	auto table = createEigenvalueTable(doc, selection, dataWcs, sensorsName);
 	for (int i = 0; i < dataWcNames.count(); i++)
 	{
-		const auto& fps = exdatas[dataWcNames[i]].statistics;
+		const auto& fps = analyseData[dataWcNames[i]].exData.statistics;
 		for (int j = 0; j < sensorsName.count(); j++)
 		{
 			auto sensorname = sensorsName[j];
@@ -648,8 +694,8 @@ bool ProjectData::saveAnalyseDataToDocx(
 		if (!exportRootDir.exists())
 			exportRootDir.mkpath(".");
 		auto exportRootPath = exportRootDir.absolutePath();
-		charts[dataWcNames[i]]->save(exportRootPath, 450, 170);
-		charts[dataWcNames[i]]->saveSeg(exportRootPath, 450, 170);
+		analyseData[dataWcNames[i]].charts->save(exportRootPath, 450, 170);
+		analyseData[dataWcNames[i]].charts->saveSeg(exportRootPath, 450, 170);
 
 		setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
 		for (int j = 0; j < sensorsName.count(); j++)
@@ -672,7 +718,7 @@ bool ProjectData::saveAnalyseDataToDocx(
 
 	for (int i = 0, seq = 0; i < dataWcs.count(); i++)
 	{
-		if (!exdatas[dataWcs[i].name].hasSegData)
+		if (!analyseData[dataWcs[i].name].exData.hasSegData)
 		{
 			continue;
 		}
@@ -694,7 +740,7 @@ bool ProjectData::saveAnalyseDataToDocx(
 		QMap<QString, QVector<double>> sensorMaxValue;
 		QMap<QString, QVector<double>> sensorMinValue;
 		QMap<QString, QVector<double>> sensorRmsValue;
-		const auto& fpsegs = exdatas[dataWcs[i].name].segStatistics;
+		const auto& fpsegs = analyseData[dataWcs[i].name].exData.segStatistics;
 		for (int j = 0; j < sensorsName.count(); j++)
 		{
 			auto sensorname = sensorsName[j];
@@ -805,14 +851,6 @@ void ProjectData::clearExtraData(ExtraData& extra)
 	extra.dataCount = 0;
 	extra.dataCountEach = 0;
 	extra.hasSegData = false;
-}
-
-void ProjectData::clearExdatas(QMap<QString, ExtraData>& exdatas)
-{
-	for (auto it = exdatas.begin(); it != exdatas.end(); ++it) {
-		clearExtraData(it.value());
-	}
-	exdatas.clear();
 }
 
 void ProjectData::setNormalSelectionStyle(QAxObject* selection, ParagraphFormat pf)

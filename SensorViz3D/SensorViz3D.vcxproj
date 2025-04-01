@@ -67,7 +67,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)3rdprty\include;$(MatLabInstallDir)\R2024b\extern\include;$(OSGInstallDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>QCUSTOMPLOT_USE_OPENGL;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -99,31 +99,54 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="app\Application.cpp" />
     <ClCompile Include="app\ProjectData.cpp" />
     <ClCompile Include="charts\ChartPainter.cpp" />
     <ClCompile Include="charts\ScalableCustomPlot.cpp" />
     <ClCompile Include="charts\PSDAnalyzer.cpp" />
     <ClCompile Include="rwmat\ReadWriteMatFile.cpp" />
+    <ClCompile Include="ui\base\BaseDialog.cpp" />
+    <ClCompile Include="ui\base\CustomFlowWidget.cpp" />
+    <ClCompile Include="ui\base\HeaderWidget.cpp" />
+    <ClCompile Include="ui\base\NativeBaseWindow.cpp" />
+    <ClCompile Include="ui\base\OpeMessageBox.cpp" />
+    <ClCompile Include="ui\base\WindowManagerHelper.cpp" />
+    <ClCompile Include="app\ChartsViewer.cpp" />
+    <ClCompile Include="ui\Main3DWidget.cpp" />
     <QtRcc Include="SensorViz3D.qrc" />
     <QtUic Include="app\MainWindow.ui" />
     <QtMoc Include="app\MainWindow.h" />
     <ClCompile Include="app\MainWindow.cpp" />
     <ClCompile Include="app\main.cpp" />
+    <QtUic Include="ui\base\CustomFlowWidget.ui" />
+    <QtUic Include="ui\base\HeaderWidget.ui" />
+    <QtUic Include="app\ChartsViewer.ui" />
+    <QtUic Include="ui\Main3DWidget.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="app\ProjectData.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="app\ChartsViewer.h" />
+    <QtMoc Include="app\Application.h" />
     <ClInclude Include="charts\ChartPainter.h" />
     <ClInclude Include="charts\ScalableCustomPlot.h" />
     <ClInclude Include="charts\PSDAnalyzer.h" />
     <ClInclude Include="rwmat\ReadWriteMatFile.h" />
+    <QtMoc Include="ui\base\OpeMessageBox.h" />
+    <QtMoc Include="ui\base\BaseDialog.h" />
+    <QtMoc Include="ui\base\WindowManagerHelper.h" />
+    <ClInclude Include="app\InlineStyleDef.h" />
+    <QtMoc Include="ui\Main3DWidget.h" />
+    <QtMoc Include="ui\base\NativeBaseWindow.h" />
+    <QtMoc Include="ui\base\HeaderWidget.h" />
+    <QtMoc Include="ui\base\CustomFlowWidget.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
