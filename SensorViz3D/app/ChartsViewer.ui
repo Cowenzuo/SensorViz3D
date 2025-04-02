@@ -15,7 +15,7 @@
   </property>
   <property name="styleSheet">
    <string notr="true">#centralWidget{border-image:url(:/image/background.png)}
-#label,#label_2{
+#label,#label_2,#label_3,#label_4,#label_5{
            font-size: 20px;
            color: #FFFFFF;
            padding-left: 0px;
@@ -26,7 +26,7 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
     <property name="spacing">
-     <number>9</number>
+     <number>10</number>
     </property>
     <property name="leftMargin">
      <number>0</number>
@@ -45,6 +45,9 @@
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <property name="rightMargin">
+       <number>20</number>
+      </property>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
@@ -55,7 +58,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBox"/>
+         <widget class="QComboBox" name="comboBoxAnalyseDim"/>
         </item>
        </layout>
       </item>
@@ -69,7 +72,21 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBox_2"/>
+         <widget class="QComboBox" name="comboBoxWorkConditions"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>传感器</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxSense"/>
         </item>
        </layout>
       </item>
@@ -85,6 +102,26 @@
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>列</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="spinBoxCols"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>行</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="spinBoxRows"/>
       </item>
      </layout>
     </item>
