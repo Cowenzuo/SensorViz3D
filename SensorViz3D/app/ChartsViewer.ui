@@ -15,7 +15,7 @@
   </property>
   <property name="styleSheet">
    <string notr="true">#centralWidget{border-image:url(:/image/background.png)}
-#label,#label_2,#label_3,#label_4,#label_5{
+#label,#label_2,#label_3{
            font-size: 20px;
            color: #FFFFFF;
            padding-left: 0px;
@@ -102,26 +102,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>列</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QSpinBox" name="spinBoxCols"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>行</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QSpinBox" name="spinBoxRows"/>
       </item>
      </layout>
     </item>

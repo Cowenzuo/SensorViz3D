@@ -16,7 +16,7 @@ public:
 
 	static Application* instance();
 
-	void showMainWindow();
+	void showMainWindow(bool isfirst =false);
 
 	ProjectData* getProjData();
 	MainWindow* getMainWindow();

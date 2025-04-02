@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 	setupSurface();
 
 	Application app(argc, argv);
-	app.showMainWindow();
+	app.showMainWindow(true);
 	//just for test
 	//ProjectData projectData(nullptr);
 	//projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);

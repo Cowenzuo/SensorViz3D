@@ -10,6 +10,13 @@ ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new U
 
 	ui->headerWidget->setMenuButtonVisible(false);
 	ui->headerWidget->setTitleVisible(false);
+
+	connect(ui->headerWidget, &HeaderWidget::minBtnClicked, this, &QWidget::showMinimized);
+	connect(ui->headerWidget, &HeaderWidget::maxBtnClicked, this, &QWidget::showMaximized);
+	connect(ui->headerWidget, &HeaderWidget::restoreBtnClicked, this, &QWidget::showNormal);
+	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, [&](){
+		setVisible(false);
+	});
 }
 
 ChartsViewer::~ChartsViewer()

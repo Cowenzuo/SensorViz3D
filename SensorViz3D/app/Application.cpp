@@ -2,6 +2,7 @@
 
 #include <QIcon>
 #include <QMenu>
+#include <QDesktopWidget>
 #include <QTranslator>
 
 #include "MainWindow.h"
@@ -32,8 +33,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 	);
 
 	_projectData = new ProjectData();
-	_chartsViewer = new ChartsViewer();
 	_mainWindow = new MainWindow();
+	_chartsViewer = new ChartsViewer();
 }
 
 Application::~Application()
@@ -55,9 +56,21 @@ Application* Application::instance()
 	return static_cast<Application*>(QCoreApplication::instance());
 }
 
-void Application::showMainWindow()
+void Application::showMainWindow(bool isfirst)
 {
 	_mainWindow->show();
+	if (isfirst)
+	{
+		_chartsViewer->show();
+		_chartsViewer->resize(QSize(1600, 900));
+		_mainWindow->resize(QSize(1600, 900));
+		QRect screenGeometry = QApplication::desktop()->screenGeometry();
+		int x = (screenGeometry.width() - _mainWindow->width()) / 2;
+		int y = (screenGeometry.height() - _mainWindow->height()) / 2;
+		_mainWindow->move(x, y);
+		_chartsViewer->move(x, y);
+		_chartsViewer->setVisible(false);
+	}
 }
 
 ProjectData* Application::getProjData()

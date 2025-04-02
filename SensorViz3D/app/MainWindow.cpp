@@ -1,7 +1,6 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-#include <QDesktopWidget>
 #include <QFileDialog>
 
 #include "Application.h"
@@ -14,16 +13,13 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 	ui->setupUi(this);
 	setAttribute(Qt::WA_StyledBackground);
 
-	resize(QSize(1600, 900));
-	QRect screenGeometry = QApplication::desktop()->screenGeometry();
-	int x = (screenGeometry.width() - this->width()) / 2;
-	int y = (screenGeometry.height() - this->height()) / 2;
-	this->move(x, y);
-
 	connect(ui->headerWidget, &HeaderWidget::minBtnClicked, this, &QWidget::showMinimized);
 	connect(ui->headerWidget, &HeaderWidget::maxBtnClicked, this, &QWidget::showMaximized);
 	connect(ui->headerWidget, &HeaderWidget::restoreBtnClicked, this, &QWidget::showNormal);
-	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, &QWidget::close);
+	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, [&]() {
+		cApp->getChartsViewer()->close();
+		close();
+		});
 	connect(ui->headerWidget, &HeaderWidget::menuButtonTriggered, this, &MainWindow::headerMenuTriggered);
 	//connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, _customPlots, &QWidget::close);
 }
