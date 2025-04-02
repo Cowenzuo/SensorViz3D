@@ -125,17 +125,18 @@ void ChartPainter::processSensorData(
 {
 	// 准备Y轴数据
 	QVector<double> fluctuation;
+	QVector<double> romData;
 	double min = 0, max = 0;
-	if (PSDA::preprocessData(sensorData, dataCount, fluctuation, min, max, frequency, 1.96)) {
+	if (PSDA::preprocessData(sensorData, dataCount, romData, fluctuation, min, max, frequency, 1.96)) {
 		// 准备时间轴数据
-		QVector<double> xData(fluctuation.count());
-		for (int i = 0; i < fluctuation.count(); ++i) {
-			xData[i] = i / double(frequency);
+		QVector<double> xData(romData.count());
+		for (int i = 0; i < romData.count(); ++i) {
+			xData[i] = i;// / double(frequency);
 		}
-		double totalTime = fluctuation.count() / frequency;
+		double totalTime = xData.count();
 		// 创建时域图
 		auto tschart = new ScalableCustomPlot();
-		tschart->setTitle(QString("%1时域过程 测点P%2").arg(_titleRootName, sensorName));
+		tschart->setTitle(QString("%1时域过程 测点%2").arg(_titleRootName, sensorName));
 		tschart->xAxis->setLabel("时间(s)");
 		tschart->yAxis->setLabel(QString("%1(%2)").arg(_titleRootName, _titleUnit));
 		tschart->xAxis->setRange(0, totalTime);
@@ -143,7 +144,7 @@ void ChartPainter::processSensorData(
 		tschart->yAxis->rescale(true);
 		//tschart->setOpenGl(true);
 		auto tsgraph = tschart->addGraph();
-		tsgraph->setData(xData, fluctuation);
+		tsgraph->setData(xData, romData);
 		tsgraph->setPen(QPen(Qt::black));
 		tschart->setSelectableVisible(true);
 		tsgraph->setSelectable(QCP::stSingleData);
@@ -161,7 +162,7 @@ void ChartPainter::processSensorData(
 	PSDA::calculatePowerSpectralDensity(fluctuation.data(), fluctuation.count(), frequency, freqs, pxx);
 	double maxY = *std::max_element(pxx.constBegin(), pxx.constEnd());
 	auto fschart = new ScalableCustomPlot();
-	fschart->setTitle(QString("频谱分析 测点P%1").arg(sensorName));
+	fschart->setTitle(QString("频谱分析 测点%1").arg(sensorName));
 	fschart->xAxis->setLabel("频率(Hz)");
 	fschart->yAxis->setLabel(QString("功率谱密度((%1)²/Hz)").arg(_titleUnit));
 	fschart->xAxis->setRange(freqs.first(), freqs.last());

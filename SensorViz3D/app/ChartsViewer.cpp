@@ -2,6 +2,7 @@
 #include "ui_ChartsViewer.h"
 
 #include "Application.h"
+#include "ProjectData.h"
 
 ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::ChartsViewerClass())
 {
@@ -17,6 +18,9 @@ ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new U
 	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, [&]() {
 		setVisible(false);
 		});
+	connect(ui->comboBoxAnalyseDim, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::dimSelectChanged);
+	connect(ui->comboBoxWorkConditions, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::wcSelectChanged);
+	connect(ui->comboBoxSense, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::update);
 }
 
 ChartsViewer::~ChartsViewer()
@@ -26,8 +30,14 @@ ChartsViewer::~ChartsViewer()
 
 void ChartsViewer::fill()
 {
-	cApp->getProjData();
-
+	auto dims = cApp->getProjData()->getDimNames();
+	ui->comboBoxAnalyseDim->blockSignals(true);
+	for (auto& dim : dims)
+	{
+		ui->comboBoxAnalyseDim->addItem(dim.first, QVariant::fromValue<ResType>(dim.second));
+	}
+	ui->comboBoxAnalyseDim->blockSignals(false);
+	ui->comboBoxAnalyseDim->setCurrentIndex(0);
 }
 
 void ChartsViewer::changeEvent(QEvent* event)
@@ -52,3 +62,76 @@ bool ChartsViewer::hitTestCaption(const QPoint& pos)
 	}
 	return NativeBaseWindow::hitTestCaption(pos);
 }
+
+void ChartsViewer::update()
+{
+	if (!_currentCharts)
+	{
+		ui->customFlowWidget->removeAll();
+		return;
+	}
+
+	auto sensorname = ui->comboBoxSense->currentText();
+
+
+}
+
+ChartsViewer::ShowMode ChartsViewer::getShowMode()
+{
+	if (ui->radioButtonAll->isChecked())
+	{
+		return ShowMode::ALL;
+	}
+	else if (ui->radioButtonOnlyts->isChecked())
+	{
+		return ShowMode::ONLYTS;
+	}
+	else if (ui->radioButtonOnlyfs->isChecked())
+	{
+		return ShowMode::ONLYFS;
+	}
+	return ShowMode::ALL;
+}
+
+void ChartsViewer::dimSelectChanged(int index)
+{
+	auto type = ui->comboBoxAnalyseDim->itemData(index, Qt::UserRole).value<ResType>();
+	auto wcnames = cApp->getProjData()->geWorkingConditionsNames(type);
+
+	ui->comboBoxWorkConditions->blockSignals(true);
+	ui->comboBoxWorkConditions->clear();
+	for (auto& wc : wcnames)
+	{
+		ui->comboBoxWorkConditions->addItem(wc.first, wc.second);
+	}
+	ui->comboBoxWorkConditions->blockSignals(false);
+	ui->comboBoxWorkConditions->setCurrentIndex(0);
+}
+
+void ChartsViewer::wcSelectChanged(int index)
+{
+	auto type = ui->comboBoxAnalyseDim->itemData(index).value<ResType>();
+	auto wcname = ui->comboBoxWorkConditions->itemData(index, Qt::DisplayRole).toString();
+
+	auto sensenames = cApp->getProjData()->geSensorNames(type, wcname);
+	_currentCharts = cApp->getProjData()->getCharts(type, wcname);
+
+	ui->comboBoxSense->blockSignals(true);
+	ui->comboBoxSense->clear();
+	ui->comboBoxSense->addItem("全部");
+	for (auto& sn : sensenames)
+	{
+		ui->comboBoxSense->addItem(sn);
+	}
+	ui->comboBoxSense->blockSignals(false);
+	ui->comboBoxWorkConditions->setCurrentIndex(0);
+}
+
+//void ChartsViewer::senseSelectChanged(int index)
+//{
+//	//auto type = ui->comboBoxAnalyseDim->itemData(index).value<ResType>();
+//	//auto wcname = ui->comboBoxWorkConditions->itemData(index, Qt::DisplayRole).toString();
+//	//
+//	//auto sensorname = ui->comboBoxSense->itemData(index, Qt::DisplayRole).toString();
+//	update();
+//}

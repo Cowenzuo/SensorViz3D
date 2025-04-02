@@ -3,6 +3,9 @@
 
 #include "Application.h"
 
+//just for test
+//#include "ProjectData.h"
+
 void setupSurface()
 {
 	QSurfaceFormat format = QSurfaceFormat::defaultFormat();
@@ -24,9 +27,11 @@ int main(int argc, char* argv[])
 
 	Application app(argc, argv);
 	app.showMainWindow(true);
+
 	//just for test
 	//ProjectData projectData(nullptr);
 	//projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
 	//projectData.setDataPackage("../data/2025_03_23_Experiment", "../data/2025_03_23_Experiment/export", true);
+
 	return app.exec();
 }

@@ -11,9 +11,10 @@ namespace PSDA {
 		 * @param sigmaThreshold 标准差阈值(默认2σ)
 		 * @return 有效波动数据数量，-1表示错误
 		 */
-	int preprocessData(
+	bool preprocessData(
 		const double* data,
 		int datacount,
+		QVector<double>& romData,
 		QVector<double>& fluctuation,
 		double& min,
 		double& max,

@@ -15,7 +15,7 @@
   </property>
   <property name="styleSheet">
    <string notr="true">#centralWidget{border-image:url(:/image/background.png)}
-#label,#label_2,#label_3{
+#label,#label_2,#label_3,#radioButtonAll,#radioButtonOnlyfs,#radioButtonOnlyts,#checkBoxShowSeg{
            font-size: 20px;
            color: #FFFFFF;
            padding-left: 0px;
@@ -24,7 +24,7 @@
 }</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,1">
     <property name="spacing">
      <number>10</number>
     </property>
@@ -92,6 +92,73 @@
       </item>
       <item>
        <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <item>
+       <widget class="QRadioButton" name="radioButtonAll">
+        <property name="text">
+         <string>全部</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonOnlyts">
+        <property name="text">
+         <string>时域图</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonOnlyfs">
+        <property name="text">
+         <string>频谱图</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Minimum</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxShowSeg">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>显示分段</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
