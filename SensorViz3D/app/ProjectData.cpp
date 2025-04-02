@@ -25,6 +25,12 @@ bool ProjectData::setDataPackage(const QString& dirPath, const QString& savePath
 		qDebug() << "Directory not exists: " << dirPath;
 		return false;
 	}
+	auto check = getFullPathFromDirByAppointFolder("工况列表", _rootDirPath);
+	if (check.isEmpty())
+	{
+		qDebug() << "Directory error, working conditions can not be found.";
+		return false;
+	}
 	_rootName = QFileInfo(dirPath).baseName();
 	_rootDirPath = QDir(dirPath).absolutePath();
 
