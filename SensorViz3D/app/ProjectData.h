@@ -73,6 +73,7 @@ private:
 
 	QMap<QString, WorkingConditions> _workingConditions;
 	QMap<ResType, QMap<QString, AnalyseData>> _analyseDatas;
+
 public:
 	ProjectData(QObject* parent = nullptr);
 	~ProjectData();
@@ -98,9 +99,21 @@ public:
 	//				若为空直接将会使用setDataPackage时候获取的数据包文件夹名字作为文件名
 	bool saveBackground(const QString& saveDir, const QString& filename = QString{});
 
+public:
+	//获取当前数据包的所有分析维度名与枚举量（获取方如果需要后续查询，请保存这个枚举量）
+	QVector<QPair<QString, ResType>> getDimNames();	
+	//通过枚举量获取当前分析维度下有多少个工况
+	QStringList geWorkingConditionsNames(ResType dimtype);
+	//通过枚举量以及工况名，获取当前状态全部传感器的名字列表
+	QStringList geSensorNames(ResType dimtype, const QString& wcname);
+	//通过枚举量以及工况名，获取当前状态全部传感器的绘图
+	const ChartPainter* getCharts(ResType dimtype, const QString& wcname);
+
+public:
 	QString getRootDirpath();
 	QString getRootName();
 	QString getSaveDirpath();
+
 private:
 	//初始化和Ms office的交互
 	bool initWordDocment(

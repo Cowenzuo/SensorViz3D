@@ -102,6 +102,7 @@ void MainWindow::generateReportTriggered()
 	{
 		OpeMessageBox::info(this, "消息", "生成数据图表成功");
 		ui->headerWidget->setTitle(cApp->getProjData()->getRootName());
+		cApp->getChartsViewer()->fill();
 	}
 	else
 	{

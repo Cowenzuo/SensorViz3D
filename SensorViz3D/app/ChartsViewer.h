@@ -13,6 +13,8 @@ public:
 	ChartsViewer(QWidget* parent = nullptr);
 	virtual~ChartsViewer();
 
+	void fill();
+
 protected:
 	void changeEvent(QEvent* event) override;
 	bool hitTestCaption(const QPoint& pos) override;

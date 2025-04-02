@@ -151,6 +151,60 @@ bool ProjectData::saveBackground(const QString& saveDir, const QString& filename
 	return true;
 }
 
+QVector<QPair<QString, ResType>> ProjectData::getDimNames()
+{
+	if (_analyseDatas.isEmpty())
+		return QVector<QPair<QString, ResType>>();
+	const auto& dimtypes = _analyseDatas.keys();
+	QVector<QPair<QString, ResType>> results;
+	for (auto& type : dimtypes)
+	{
+		QString nameChStr, unit;
+		getResTypeInfo(type, nameChStr, unit);
+		results.push_back({ nameChStr ,type });
+	}
+	return results;
+}
+
+QStringList ProjectData::geWorkingConditionsNames(ResType dimtype)
+{
+	if (!_analyseDatas.contains(dimtype))
+		return QStringList();
+
+	const auto& data = _analyseDatas[dimtype];
+	auto names = data.keys();
+	std::sort(names.begin(), names.end(), &numericCompare);
+	return names;
+}
+
+QStringList ProjectData::geSensorNames(ResType dimtype, const QString& wcname)
+{
+	if (!_analyseDatas.contains(dimtype))
+		return QStringList();
+
+	const auto& data = _analyseDatas[dimtype];
+	if (!data.contains(wcname))
+		return QStringList();
+
+	const auto& sensorsData = data[wcname];
+	auto names = sensorsData.exData.data.keys();
+	std::sort(names.begin(), names.end(), &numericCompare);
+	return names;
+}
+
+const ChartPainter* ProjectData::getCharts(ResType dimtype, const QString& wcname)
+{
+	if (!_analyseDatas.contains(dimtype))
+		return nullptr;
+
+	const auto& data = _analyseDatas[dimtype];
+	if (!data.contains(wcname))
+		return nullptr;
+
+	const auto& sensorsData = data[wcname];
+	return sensorsData.charts;
+}
+
 QString ProjectData::getRootDirpath()
 {
 	return _rootDirPath;

@@ -1,7 +1,7 @@
 #include "ChartsViewer.h"
 #include "ui_ChartsViewer.h"
 
-#include <QDesktopWidget>
+#include "Application.h"
 
 ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::ChartsViewerClass())
 {
@@ -14,14 +14,20 @@ ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new U
 	connect(ui->headerWidget, &HeaderWidget::minBtnClicked, this, &QWidget::showMinimized);
 	connect(ui->headerWidget, &HeaderWidget::maxBtnClicked, this, &QWidget::showMaximized);
 	connect(ui->headerWidget, &HeaderWidget::restoreBtnClicked, this, &QWidget::showNormal);
-	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, [&](){
+	connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, this, [&]() {
 		setVisible(false);
-	});
+		});
 }
 
 ChartsViewer::~ChartsViewer()
 {
 	delete ui;
+}
+
+void ChartsViewer::fill()
+{
+	cApp->getProjData();
+
 }
 
 void ChartsViewer::changeEvent(QEvent* event)
