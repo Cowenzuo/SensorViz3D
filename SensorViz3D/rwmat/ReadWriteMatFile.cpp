@@ -15,6 +15,8 @@ bool RWMAT::readMatFile(
 	const QString& filepath,
 	const QStringList& sensorNames,
 	const QStringList& sensorValid,
+	double minValue,
+	double maxValue,
 	ResType type
 )
 {
@@ -74,7 +76,7 @@ bool RWMAT::readMatFile(
 	const size_t valueRows = mxGetM(datasArray);
 	int redundancy = valueRows % (fp.frequency * SEGMENT_COUNT);
 	const size_t removeSize = std::min<size_t>(fp.frequency * 5, valueRows / 2);
-	fp.dataCount = valueRows - (removeSize * 2) - redundancy;
+	fp.dataCount = (int)valueRows - ((int)removeSize * 2) - redundancy;
 	fp.startTime = QDateTime::currentDateTime();
 	fp.senseCount = 0;
 
@@ -104,20 +106,23 @@ bool RWMAT::readMatFile(
 			double dataValue = 0.0;
 			if (type == ResType::HC)
 			{
-				const double val0 = resValues[(i + 0) * valueRows + row] * 331.830718;
-				const double val1 = resValues[(i + 2) * valueRows + row] * 66.051984;
+				double val0 = resValues[(i + 0) * valueRows + row] * 331.830718;
+				double val1 = resValues[(i + 2) * valueRows + row] * 66.051984;
 				dataValue = std::abs(val0 - val1);
 			}
 			else
 			{
 				for (int col = 0; col < singleDataCols; ++col) {
-					const double val = resValues[(i * singleDataCols + col) * valueRows + row];
+					double val = resValues[(i * singleDataCols + col) * valueRows + row];
 					dataValue += val * val;
 				}
 				dataValue = std::sqrt(dataValue);
+
 			}
-
-
+			if (dataValue<minValue || dataValue>maxValue)
+			{
+				dataValue = 0.0;
+			}
 			// 存储数据
 			newdata[newIdx] = dataValue;
 

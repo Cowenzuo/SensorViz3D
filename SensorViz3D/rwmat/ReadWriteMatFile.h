@@ -10,6 +10,8 @@ namespace RWMAT
 		const QString& filepath,
 		const QStringList& sensorNames,
 		const QStringList& sensorValid,
+		double minValue,
+		double maxValue,
 		ResType type
 	);
 };

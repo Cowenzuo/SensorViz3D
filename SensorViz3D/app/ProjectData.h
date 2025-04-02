@@ -54,6 +54,7 @@ struct ExtraData :public RawData
 };
 
 enum class ResType { FP, VA, VD, Strain, OP, HC };
+Q_DECLARE_METATYPE(ResType);
 
 class ChartPainter;
 class FPChart;
@@ -102,8 +103,8 @@ public:
 public:
 	//获取当前数据包的所有分析维度名与枚举量（获取方如果需要后续查询，请保存这个枚举量）
 	QVector<QPair<QString, ResType>> getDimNames();	
-	//通过枚举量获取当前分析维度下有多少个工况
-	QStringList geWorkingConditionsNames(ResType dimtype);
+	//通过枚举量获取当前分析维度下有多少个工况(以及是否带有分段数据)
+	QVector<QPair<QString, bool>> geWorkingConditionsNames(ResType dimtype);
 	//通过枚举量以及工况名，获取当前状态全部传感器的名字列表
 	QStringList geSensorNames(ResType dimtype, const QString& wcname);
 	//通过枚举量以及工况名，获取当前状态全部传感器的绘图

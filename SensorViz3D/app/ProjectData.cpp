@@ -25,7 +25,7 @@ bool ProjectData::setDataPackage(const QString& dirPath, const QString& savePath
 		qDebug() << "Directory not exists: " << dirPath;
 		return false;
 	}
-	auto check = getFullPathFromDirByAppointFolder("工况列表", _rootDirPath);
+	auto check = getFullPathFromDirByAppointFolder("工况列表", QDir(dirPath));
 	if (check.isEmpty())
 	{
 		qDebug() << "Directory error, working conditions can not be found.";
@@ -155,7 +155,8 @@ QVector<QPair<QString, ResType>> ProjectData::getDimNames()
 {
 	if (_analyseDatas.isEmpty())
 		return QVector<QPair<QString, ResType>>();
-	const auto& dimtypes = _analyseDatas.keys();
+	auto dimtypes = _analyseDatas.keys();
+	//std::sort(dimtypes.begin(), dimtypes.end(), &numericCompare);
 	QVector<QPair<QString, ResType>> results;
 	for (auto& type : dimtypes)
 	{
@@ -166,15 +167,20 @@ QVector<QPair<QString, ResType>> ProjectData::getDimNames()
 	return results;
 }
 
-QStringList ProjectData::geWorkingConditionsNames(ResType dimtype)
+QVector<QPair<QString, bool>> ProjectData::geWorkingConditionsNames(ResType dimtype)
 {
 	if (!_analyseDatas.contains(dimtype))
-		return QStringList();
+		return QVector<QPair<QString, bool>>();
 
 	const auto& data = _analyseDatas[dimtype];
 	auto names = data.keys();
 	std::sort(names.begin(), names.end(), &numericCompare);
-	return names;
+	QVector<QPair<QString, bool>> results;
+	for (auto& name : names)
+	{
+		results.push_back({ name ,data[name].exData.hasSegData });
+	}
+	return results;
 }
 
 QStringList ProjectData::geSensorNames(ResType dimtype, const QString& wcname)
@@ -581,11 +587,15 @@ bool ProjectData::loadAnalyseDataFile(
 	const QStringList sensorNames = in.readLine().split(",");  // 传感器名称列表
 	const QStringList sensorValid = in.readLine().split(",");  // 传感器有效性标记
 	const QStringList segwcnames = in.readLine().split(",");   // 需要分段的工况名称
+	const QStringList valuerange = in.readLine().split(",");   // 极大极小值过滤
 	settingsFile.close();
-	if (sensorNames.isEmpty() || sensorValid.isEmpty() || segwcnames.isEmpty()) {
+	if (sensorNames.isEmpty() || sensorValid.isEmpty() || segwcnames.isEmpty() || valuerange.isEmpty()) {
 		qWarning() << "Invalid settings file format";
 		return false;
 	}
+
+	double minValue = valuerange[0].toDouble();
+	double maxValue = valuerange[1].toDouble();
 
 	// 2. 根据资源类型获取相关信息
 	QString resTitle, resUnit;
@@ -608,7 +618,7 @@ bool ProjectData::loadAnalyseDataFile(
 		ExtraData exdata;
 		exdata.wcname = wcName;
 
-		if (!RWMAT::readMatFile(exdata, resDir.filePath(matFile), sensorNames, sensorValid, type)) {
+		if (!RWMAT::readMatFile(exdata, resDir.filePath(matFile), sensorNames, sensorValid, minValue, maxValue, type)) {
 			qWarning() << "Failed to load mat file:" << matFile;
 			continue;
 		}
@@ -763,12 +773,12 @@ bool ProjectData::saveAnalyseDataToDocx(
 			QString savepathts = QString("%1/测点%2_时域图.png").arg(exportRootPath, sensorsName[j]);
 			insertImage(selection, savepathts, 450, 170);
 			setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
-			addCaption(selection, "时域变化-P" + sensorsName[j], false);
+			addCaption(selection, "时域变化-" + sensorsName[j], false);
 
 			QString savepathfs = QString("%1/测点%2_频谱图.png").arg(exportRootPath, sensorsName[j]);
 			insertImage(selection, savepathfs, 450, 170);
 			setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
-			addCaption(selection, "频谱分析-P" + sensorsName[j], false);
+			addCaption(selection, "频谱分析-" + sensorsName[j], false);
 		}
 	}
 
@@ -851,12 +861,12 @@ bool ProjectData::saveAnalyseDataToDocx(
 				QString savepathts = QString("%1/测点%2_时域图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
 				insertImage(selection, savepathts, 450, 170);
 				setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
-				addCaption(selection, "时域变化-P" + sensorsName[k], false);
+				addCaption(selection, "时域变化-" + sensorsName[k], false);
 
 				QString savepathfs = QString("%1/测点%2_频谱图_段%3.png").arg(exportRootPath, sensorsName[k], QString::number(j));
 				insertImage(selection, savepathfs, 450, 170);
 				setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
-				addCaption(selection, "频谱分析-P" + sensorsName[k], false);
+				addCaption(selection, "频谱分析-" + sensorsName[k], false);
 			}
 		}
 	}
@@ -1016,7 +1026,7 @@ QAxObject* ProjectData::createEigenvalueTable(QAxObject* doc, QAxObject* selecti
 	fillTableHeaderCell(table, 1, 3, "测点");
 	for (auto i = 0; i < sensorsNames.count(); i++)
 	{
-		fillTableHeaderCell(table, 2, 3 + i, "P" + sensorsNames[i]);
+		fillTableHeaderCell(table, 2, 3 + i, sensorsNames[i]);
 	}
 	// 水平表头合并
 	mergeCells(table, 1, 1, 2, 1);
@@ -1148,12 +1158,42 @@ void ProjectData::insertImage(QAxObject* selection, const QString& imagePath, in
 	delete inlineShapes;
 }
 
-bool numericCompare(const QString& a, const QString& b)
-{
-	bool ok1, ok2;
-	int numA = a.toInt(&ok1), numB = b.toInt(&ok2);
-	if (ok1 && ok2) return numA < numB;
-	else if (ok1) return true;
-	else if (ok2) return false;
-	else return a < b;
-};
+bool numericCompare(const QString& a, const QString& b) {
+	// 辅助函数：提取字符串中第一个数字序列
+	auto extractFirstNumber = [](const QString& str) -> int {
+		QString numStr;
+		bool found = false;
+
+		// 使用可修改的迭代器遍历字符串
+		auto it = str.begin();
+		while (it != str.end()) {
+			if (it->isDigit()) {
+				// 找到第一个数字后开始提取连续数字
+				do {
+					numStr.append(*it);
+					++it;
+				} while (it != str.end() && it->isDigit());
+
+				if (!numStr.isEmpty()) {
+					found = true;
+					break;
+				}
+			}
+			else {
+				++it;
+			}
+		}
+
+		return found ? numStr.toInt() : INT_MAX;
+		};
+
+	int numA = extractFirstNumber(a);
+	int numB = extractFirstNumber(b);
+
+	// 比较逻辑保持不变
+	if (numA != INT_MAX && numB != INT_MAX) {
+		if (numA == numB) return a < b;
+		return numA < numB;
+	}
+	return (numA != INT_MAX) ? true : (numB != INT_MAX) ? false : a < b;
+}
