@@ -2,7 +2,62 @@
 #include "ui_CustomFlowWidget.h"
 
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QScrollArea>
+
+CustomFlowWidgetItem::CustomFlowWidgetItem(QWidget* parent) :QWidget(parent)
+{
+	setAttribute(Qt::WA_DeleteOnClose);
+	QVBoxLayout* layout = new QVBoxLayout;
+	_container = new QWidget;
+	_container->setObjectName("container");
+	_title = new QLabel;
+	_title->setObjectName("title");
+	layout->addWidget(_title);
+	layout->addWidget(_container);
+	layout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
+	layout->setSpacing(0);
+	layout->setMargin(5);
+	setLayout(layout);
+	setStyleSheet(R"(
+			#title{
+				font-size: 16px;
+        		color:#ffffff;
+				background:transparent;
+				alignment:center;
+			}
+		)");
+}
+
+CustomFlowWidgetItem::CustomFlowWidgetItem(QWidget* child, const QString& tiltle, QWidget* parent) :CustomFlowWidgetItem(parent)
+{
+	setContainWidget(child, tiltle);
+}
+
+CustomFlowWidgetItem::~CustomFlowWidgetItem()
+{
+	auto layout = _container->layout();
+	if (layout)
+	{
+		auto children = layout->children();
+		for (auto& child : children)
+		{
+			child->setParent(NULL);
+		}
+	}
+}
+
+void CustomFlowWidgetItem::setContainWidget(QWidget* child, const QString& tiltle)
+{
+	QVBoxLayout* layout = new QVBoxLayout;
+	layout->addWidget(child);
+	layout->setSpacing(0);
+	layout->setMargin(0);
+	_container->setLayout(layout);
+	_title->setText(tiltle);
+	_title->setVisible(!tiltle.isEmpty());
+}
+
 
 CustomFlowWidget::CustomFlowWidget(QWidget* parent) : QWidget(parent), ui(new Ui::CustomFlowWidget), _itemSuitableWidth(1), _itemSuitableHeight(1) {
 	_scrollArea = new QScrollArea(this);
@@ -24,16 +79,24 @@ CustomFlowWidget::~CustomFlowWidget() {
 	delete ui;
 }
 
-void CustomFlowWidget::addItem(QWidget* itemWidget) {
-	if (!_items.contains(itemWidget)) {
-		if (_items.count() >= 100) {
-			_items.removeLast();
-		}
-		_items.push_front(itemWidget);
-		itemWidget->setParent(_contentWidget);
-		itemWidget->show();
-		resizeEvent(nullptr);
+void CustomFlowWidget::addItem(QWidget* itemWidget, bool asc/* = true*/) {
+	if (_items.contains(itemWidget)) {
+		return;
 	}
+	if (_items.count() >= 100) {
+		_items.removeLast();
+	}
+	if (asc)
+	{
+		_items.push_back(itemWidget);
+	}
+	else
+	{
+		_items.push_front(itemWidget);
+	}
+	itemWidget->setParent(_contentWidget);
+	itemWidget->show();
+	resizeEvent(nullptr);
 }
 
 bool CustomFlowWidget::removeItem(QWidget* itemWidget) {
@@ -63,7 +126,7 @@ void CustomFlowWidget::removeAll() {
 void CustomFlowWidget::setSuitableItemSize(int width, int height) {
 	_itemSuitableWidth = width;
 	_itemSuitableHeight = height;
-	setMinimumSize(358, 150);
+	setMinimumSize(_itemSuitableWidth, _itemSuitableHeight);
 }
 
 // void CustomFlowWidget::setViewPortRowCount(int rowCount)

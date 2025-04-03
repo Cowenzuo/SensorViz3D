@@ -90,13 +90,13 @@ void ChartsViewer::updateCharts()
 	{
 	case ChartsViewer::ShowMode::ALL:
 	{
-		ui->customFlowWidget->setSuitableItemSize(450, 360);
+		ui->customFlowWidget->setSuitableItemSize(450, 260);
 		break;
 	}
 	case ChartsViewer::ShowMode::ONLYTS:
 	case ChartsViewer::ShowMode::ONLYFS:
 	{
-		ui->customFlowWidget->setSuitableItemSize(450, 180);
+		ui->customFlowWidget->setSuitableItemSize(450, 130);
 		break;
 	}
 	default:
@@ -110,14 +110,14 @@ void ChartsViewer::updateCharts()
 		{
 			auto sensorname = ui->comboBoxSense->itemData(i, Qt::DisplayRole).toString();
 			auto widget = _currentCharts->getChart(sensorname, int(mode));
-			ui->customFlowWidget->addItem(widget);
+			ui->customFlowWidget->addItem(new CustomFlowWidgetItem(widget,""));
 		}
 	}
 	else
 	{
 		auto sensorname = ui->comboBoxSense->currentText();
 		auto widget = _currentCharts->getChart(sensorname, int(mode));
-		ui->customFlowWidget->addItem(widget);
+		ui->customFlowWidget->addItem(new CustomFlowWidgetItem(widget, ""));
 	}
 
 	auto type = ui->comboBoxAnalyseDim->currentData().value<ResType>();
@@ -145,13 +145,13 @@ void ChartsViewer::updateSegCharts(int state)
 	{
 	case ChartsViewer::ShowMode::ALL:
 	{
-		ui->customFlowWidgetSeg->setSuitableItemSize(450, 360);
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 300);
 		break;
 	}
 	case ChartsViewer::ShowMode::ONLYTS:
 	case ChartsViewer::ShowMode::ONLYFS:
 	{
-		ui->customFlowWidgetSeg->setSuitableItemSize(450, 180);
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 150);
 		break;
 	}
 	default:
@@ -164,9 +164,15 @@ void ChartsViewer::updateSegCharts(int state)
 		ui->customFlowWidgetSeg->removeAll();
 		auto sensorname = ui->comboBoxSense->currentText();
 		auto widgets = _currentCharts->getSegChart(sensorname, int(mode));
-		for (auto& widget : widgets)
+		auto wcname = ui->comboBoxWorkConditions->currentData(Qt::DisplayRole).toString();
+		auto segnames = cApp->getProjData()->getSegWorkingConditionsNames(wcname);
+		if (segnames.count() != widgets.count())
 		{
-			ui->customFlowWidgetSeg->addItem(widget);
+			return;
+		}
+		for (auto i = 0;i < segnames.count();++i)
+		{
+			ui->customFlowWidgetSeg->addItem(new CustomFlowWidgetItem(widgets[i], segnames[i]));
 		}
 	}
 	else if (state == Qt::CheckState::Unchecked)

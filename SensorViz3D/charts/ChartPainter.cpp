@@ -30,18 +30,13 @@ ChartPainter::~ChartPainter()
 	}
 	_imgSegDataFrequencySpectrum.clear();
 
+	//必须放最后处理！
 	for (auto& widget : _mixWidgets)
 	{
-		auto children = widget->children();
-		for (auto& child : children)
-		{
-			child->setParent(NULL);
-		}
 		widget->close();
 		delete widget;
 	}
 	_mixWidgets.clear();
-	//clear _imgMixWidget _imgSegMixWidget
 
 }
 
@@ -151,7 +146,7 @@ QWidget* ChartPainter::getChart(const QString& sensorname, int mode)
 		layout->addWidget(tschart);
 		layout->addWidget(fschart);
 		layout->setSpacing(0);
-		layout->setMargin(5);
+		layout->setMargin(0);
 		QWidget* mixWidget = new QWidget();
 		mixWidget->setLayout(layout);
 		_mixWidgets.push_back(mixWidget);
@@ -164,6 +159,7 @@ QVector<QWidget*> ChartPainter::getSegChart(const QString& sensorname, int mode)
 {
 	QVector<QWidget*> result;
 	int totalCount = _imgSegDataTimeSeries.count();
+
 	for (int i = 0; i < totalCount; i++)
 	{
 		if (!_imgSegDataTimeSeries[i].contains(sensorname) || !_imgSegDataFrequencySpectrum[i].contains(sensorname))
@@ -186,7 +182,7 @@ QVector<QWidget*> ChartPainter::getSegChart(const QString& sensorname, int mode)
 			layout->addWidget(tschart);
 			layout->addWidget(fschart);
 			layout->setSpacing(0);
-			layout->setMargin(5);
+			layout->setMargin(0);
 			QWidget* mixWidget = new QWidget();
 			mixWidget->setLayout(layout);
 			_mixWidgets.push_back(mixWidget);

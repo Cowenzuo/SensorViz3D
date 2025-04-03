@@ -116,6 +116,7 @@ public:
 	QString getRootName();
 	QString getSaveDirpath();
 	bool hasLoadData();
+	QStringList getSegWorkingConditionsNames(const QString& wcname);
 private:
 	//初始化和Ms office的交互
 	bool initWordDocment(

@@ -243,6 +243,28 @@ bool ProjectData::hasLoadData()
 	return !_analyseDatas.isEmpty();
 }
 
+QStringList ProjectData::getSegWorkingConditionsNames(const QString& wcname)
+{
+	if (!_workingConditions.contains(wcname))
+		return QStringList();
+
+	QStringList segwcsnames;
+	auto wc = _workingConditions[wcname];
+	auto start = wc.gateOpenStart;
+	auto end = wc.gateOpenEnd;
+	auto range = end - start;
+	auto between = range / SEGMENT_COUNT;
+	auto offset = between / 2;
+	for (auto i = 0; i < SEGMENT_COUNT - 1; i++)
+	{
+		WorkingConditions wctemp;
+		auto st = start + offset + between * i;
+		auto et = st + between;
+		segwcsnames.append(QString("闸门开度[%1~%2]").arg(QString::number(st), QString::number(et)));
+	}
+	return segwcsnames;
+}
+
 bool ProjectData::initWordDocment(
 	QAxObject*& writer,
 	QAxObject*& doc,
