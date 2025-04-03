@@ -29,6 +29,20 @@ ChartPainter::~ChartPainter()
 		segMap.clear();
 	}
 	_imgSegDataFrequencySpectrum.clear();
+
+	for (auto& widget : _mixWidgets)
+	{
+		auto children = widget->children();
+		for (auto& child : children)
+		{
+			child->setParent(NULL);
+		}
+		widget->close();
+		delete widget;
+	}
+	_mixWidgets.clear();
+	//clear _imgMixWidget _imgSegMixWidget
+
 }
 
 void ChartPainter::setData(const ExtraData& exdata)
@@ -114,6 +128,74 @@ void ChartPainter::saveSeg(const QString& dirpath, int width, int height)
 
 }
 
+QWidget* ChartPainter::getChart(const QString& sensorname, int mode)
+{
+	if (!_imgTimeSeries.contains(sensorname) || !_imgFrequencySpectrum.contains(sensorname))
+	{
+		return nullptr;
+	}
+
+	auto tschart = _imgTimeSeries[sensorname];
+	if (1 == mode)
+	{
+		return tschart;
+	}
+	auto fschart = _imgFrequencySpectrum[sensorname];
+	if (2 == mode)
+	{
+		return fschart;
+	}
+	if (0 == mode)
+	{
+		QVBoxLayout* layout = new QVBoxLayout;
+		layout->addWidget(tschart);
+		layout->addWidget(fschart);
+		layout->setSpacing(0);
+		layout->setMargin(5);
+		QWidget* mixWidget = new QWidget();
+		mixWidget->setLayout(layout);
+		_mixWidgets.push_back(mixWidget);
+		return mixWidget;
+	}
+	return nullptr;
+}
+
+QVector<QWidget*> ChartPainter::getSegChart(const QString& sensorname, int mode)
+{
+	QVector<QWidget*> result;
+	int totalCount = _imgSegDataTimeSeries.count();
+	for (int i = 0; i < totalCount; i++)
+	{
+		if (!_imgSegDataTimeSeries[i].contains(sensorname) || !_imgSegDataFrequencySpectrum[i].contains(sensorname))
+		{
+			continue;
+		}
+		auto tschart = _imgSegDataTimeSeries[i][sensorname];
+		if (1 == mode)
+		{
+			result.push_back(tschart);
+		}
+		auto fschart = _imgSegDataFrequencySpectrum[i][sensorname];
+		if (2 == mode)
+		{
+			result.push_back(fschart);
+		}
+		if (0 == mode)
+		{
+			QVBoxLayout* layout = new QVBoxLayout;
+			layout->addWidget(tschart);
+			layout->addWidget(fschart);
+			layout->setSpacing(0);
+			layout->setMargin(5);
+			QWidget* mixWidget = new QWidget();
+			mixWidget->setLayout(layout);
+			_mixWidgets.push_back(mixWidget);
+			result.push_back(mixWidget);
+		}
+	}
+	return result;
+}
+
 void ChartPainter::processSensorData(
 	const QString& sensorName,
 	double* sensorData,
@@ -127,35 +209,31 @@ void ChartPainter::processSensorData(
 	QVector<double> fluctuation;
 	QVector<double> romData;
 	double min = 0, max = 0;
-	if (PSDA::preprocessData(sensorData, dataCount, romData, fluctuation, min, max, frequency, 1.96)) {
-		// 准备时间轴数据
-		QVector<double> xData(romData.count());
-		for (int i = 0; i < romData.count(); ++i) {
-			xData[i] = i;// / double(frequency);
-		}
-		double totalTime = xData.count();
-		// 创建时域图
-		auto tschart = new ScalableCustomPlot();
-		tschart->setTitle(QString("%1时域过程 测点%2").arg(_titleRootName, sensorName));
-		tschart->xAxis->setLabel("时间(s)");
-		tschart->yAxis->setLabel(QString("%1(%2)").arg(_titleRootName, _titleUnit));
-		tschart->xAxis->setRange(0, totalTime);
-		tschart->yAxis->setRange(min, max);
-		tschart->yAxis->rescale(true);
-		//tschart->setOpenGl(true);
-		auto tsgraph = tschart->addGraph();
-		tsgraph->setData(xData, romData);
-		tsgraph->setPen(QPen(Qt::black));
-		tschart->setSelectableVisible(true);
-		tsgraph->setSelectable(QCP::stSingleData);
-		tschart->setOriginalRanges();
-		tschart->replot();
-		timeSeriesMap[sensorName] = tschart;
+	PSDA::preprocessData(sensorData, dataCount, romData, fluctuation, min, max, frequency, 1.96);
+	// 准备时间轴数据
+	QVector<double> xData(romData.count());
+	for (int i = 0; i < romData.count(); ++i) {
+		xData[i] = i;// / double(frequency);
 	}
-	else {
-		qWarning() << "No valid data for sensor:" << sensorName;
-		return;
-	}
+	double totalTime = xData.count();
+	// 创建时域图
+	auto tschart = new ScalableCustomPlot();
+	tschart->setTitle(QString("%1时域过程 测点%2").arg(_titleRootName, sensorName));
+	tschart->xAxis->setLabel("时间(s)");
+	tschart->yAxis->setLabel(QString("%1(%2)").arg(_titleRootName, _titleUnit));
+	tschart->xAxis->setRange(0, totalTime);
+	tschart->yAxis->setRange(min, max);
+	tschart->yAxis->rescale(true);
+	//tschart->setOpenGl(true);
+	auto tsgraph = tschart->addGraph();
+	tsgraph->setData(xData, romData);
+	tsgraph->setPen(QPen(Qt::black));
+	tschart->setSelectableVisible(true);
+	tsgraph->setSelectable(QCP::stSingleData);
+	tschart->setOriginalRanges();
+	tschart->replot();
+	timeSeriesMap[sensorName] = tschart;
+
 	// 创建频谱图
 	QVector<double> freqs;
 	QVector<double> pxx;

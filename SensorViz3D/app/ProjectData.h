@@ -102,19 +102,20 @@ public:
 
 public:
 	//获取当前数据包的所有分析维度名与枚举量（获取方如果需要后续查询，请保存这个枚举量）
-	QVector<QPair<QString, ResType>> getDimNames();	
+	QVector<QPair<QString, ResType>> getDimNames();
 	//通过枚举量获取当前分析维度下有多少个工况(以及是否带有分段数据)
 	QVector<QPair<QString, bool>> geWorkingConditionsNames(ResType dimtype);
 	//通过枚举量以及工况名，获取当前状态全部传感器的名字列表
 	QStringList geSensorNames(ResType dimtype, const QString& wcname);
 	//通过枚举量以及工况名，获取当前状态全部传感器的绘图
-	const ChartPainter* getCharts(ResType dimtype, const QString& wcname);
-
+	ChartPainter* getCharts(ResType dimtype, const QString& wcname);
+	//通过枚举量以及工况名，获取当前工况有没有分断数据
+	bool hasSegData(ResType dimtype, const QString& wcname);
 public:
 	QString getRootDirpath();
 	QString getRootName();
 	QString getSaveDirpath();
-
+	bool hasLoadData();
 private:
 	//初始化和Ms office的交互
 	bool initWordDocment(

@@ -7,6 +7,7 @@
 CustomFlowWidget::CustomFlowWidget(QWidget* parent) : QWidget(parent), ui(new Ui::CustomFlowWidget), _itemSuitableWidth(1), _itemSuitableHeight(1) {
 	_scrollArea = new QScrollArea(this);
 	_contentWidget = new QWidget();
+	_contentWidget->setStyleSheet("background:none;border:none");
 	_contentWidget->setObjectName("contentWidget");
 	_scrollArea->setWidget(_contentWidget);
 
@@ -49,7 +50,7 @@ bool CustomFlowWidget::removeItem(QWidget* itemWidget) {
 void CustomFlowWidget::removeAll() {
 	for (auto i = 0; i < _items.count(); i++) {
 		QWidget* item = _items[i];
-		item->hide();
+		//item->hide();
 		item->setParent(NULL);
 	}
 

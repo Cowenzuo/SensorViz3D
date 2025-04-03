@@ -7,7 +7,6 @@
 #include <QStyleOption>
 
 #include "WindowManagerHelper.h"
-#include "ui/InlineStyleDef.h"
 
 BaseDialogHeaderWidget::BaseDialogHeaderWidget(QWidget* parent) : QWidget(parent)
 {

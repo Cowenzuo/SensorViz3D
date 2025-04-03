@@ -6,6 +6,7 @@ namespace Ui { class ChartsViewerClass; };
 QT_END_NAMESPACE
 
 class ChartPainter;
+class QAbstractButton;
 class ChartsViewer : public NativeBaseWindow
 {
 	Q_OBJECT
@@ -34,8 +35,10 @@ private:
 	Q_SLOT void dimSelectChanged(int index);
 	Q_SLOT void wcSelectChanged(int index);
 	//Q_SLOT void senseSelectChanged(int index);
-	Q_SLOT void update();
+	Q_SLOT void updateCharts();
+	Q_SLOT void updateSegCharts(int state);
+	Q_SLOT void modeChanged(QAbstractButton* button);
 private:
 	Ui::ChartsViewerClass* ui;
-	const ChartPainter* _currentCharts{};
+	ChartPainter* _currentCharts{};
 };

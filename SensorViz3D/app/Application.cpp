@@ -30,6 +30,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 		+ QString(BaseDialogStyle)
 		+ QString(MsgBoxStyle)
 		+ QString(ComboBoxStyle)
+		+ QString(QScrollAreaStyle)
+		+ QString(QCheckBoxStyle)
 	);
 
 	_projectData = new ProjectData();

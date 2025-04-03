@@ -53,16 +53,23 @@ bool MainWindow::hitTestCaption(const QPoint& pos)
 }
 
 void MainWindow::headerMenuTriggered() {
+	auto chartsViewerVisible = cApp->getChartsViewer()->isVisible();
+	auto isSetData = !(cApp->getProjData()->getRootDirpath().isEmpty());
+	auto isLoadData = cApp->getProjData()->hasLoadData();
+
 	QMenu menu(this);
 	QAction* importDataPackage = menu.addAction("导入数据包");
 	QAction* generateReport = menu.addAction("生成数据图表");
 	QAction* viewTableImg = menu.addAction("查看报表");
 	viewTableImg->setCheckable(true);
-	viewTableImg->setChecked(cApp->getChartsViewer()->isVisible());
+	viewTableImg->setChecked(chartsViewerVisible);
 	QAction* saveToLoacl = menu.addAction("导出数据图表");
-	generateReport->setEnabled(!(cApp->getProjData()->getRootDirpath().isEmpty()));
-	viewTableImg->setEnabled(!(cApp->getProjData()->getRootDirpath().isEmpty()));
-	saveToLoacl->setEnabled(!(cApp->getProjData()->getRootDirpath().isEmpty()));
+
+	importDataPackage->setEnabled(!isSetData);
+	generateReport->setEnabled(isSetData && !isLoadData);
+	viewTableImg->setEnabled(isLoadData);
+	saveToLoacl->setEnabled(isSetData);
+
 	connect(importDataPackage, &QAction::triggered, this, &MainWindow::importDataPkgTriggered);
 	connect(generateReport, &QAction::triggered, this, &MainWindow::generateReportTriggered);
 	connect(viewTableImg, &QAction::toggled, this, &MainWindow::viewTableImgTriggered);

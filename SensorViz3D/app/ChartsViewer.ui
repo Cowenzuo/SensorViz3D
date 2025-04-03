@@ -24,7 +24,7 @@
 }</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,1">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
     <property name="spacing">
      <number>10</number>
     </property>
@@ -58,7 +58,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBoxAnalyseDim"/>
+         <widget class="QComboBox" name="comboBoxAnalyseDim">
+          <property name="minimumSize">
+           <size>
+            <width>140</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -72,7 +79,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBoxWorkConditions"/>
+         <widget class="QComboBox" name="comboBoxWorkConditions">
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -86,27 +100,17 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="comboBoxSense"/>
+         <widget class="QComboBox" name="comboBoxSense">
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5">
       <item>
        <widget class="QRadioButton" name="radioButtonAll">
         <property name="text">
@@ -150,7 +154,7 @@
       <item>
        <widget class="QCheckBox" name="checkBoxShowSeg">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>显示分段</string>
@@ -158,7 +162,7 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_2">
+       <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -173,7 +177,31 @@
      </layout>
     </item>
     <item>
-     <widget class="CustomFlowWidget" name="customFlowWidget" native="true"/>
+     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,1">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="CustomFlowWidget" name="customFlowWidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>500</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="CustomFlowWidget" name="customFlowWidgetSeg" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>500</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

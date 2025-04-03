@@ -198,7 +198,7 @@ QStringList ProjectData::geSensorNames(ResType dimtype, const QString& wcname)
 	return names;
 }
 
-const ChartPainter* ProjectData::getCharts(ResType dimtype, const QString& wcname)
+ChartPainter* ProjectData::getCharts(ResType dimtype, const QString& wcname)
 {
 	if (!_analyseDatas.contains(dimtype))
 		return nullptr;
@@ -209,6 +209,18 @@ const ChartPainter* ProjectData::getCharts(ResType dimtype, const QString& wcnam
 
 	const auto& sensorsData = data[wcname];
 	return sensorsData.charts;
+}
+
+bool ProjectData::hasSegData(ResType dimtype, const QString& wcname)
+{
+	if (!_analyseDatas.contains(dimtype))
+		return false;
+
+	const auto& data = _analyseDatas[dimtype];
+	if (!data.contains(wcname))
+		return false;
+
+	return data[wcname].exData.hasSegData;
 }
 
 QString ProjectData::getRootDirpath()
@@ -224,6 +236,11 @@ QString ProjectData::getRootName()
 QString ProjectData::getSaveDirpath()
 {
 	return _saveDirPath;
+}
+
+bool ProjectData::hasLoadData()
+{
+	return !_analyseDatas.isEmpty();
 }
 
 bool ProjectData::initWordDocment(

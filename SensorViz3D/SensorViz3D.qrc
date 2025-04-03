@@ -44,5 +44,14 @@
         <file>image/common/combobox/drop_down_hover.png</file>
         <file>image/common/combobox/drop_down_on.png</file>
         <file>image/common/combobox/drop_down_on_hover.png</file>
+        <file>image/common/checkbox/checked.png</file>
+        <file>image/common/checkbox/checked_disabled.png</file>
+        <file>image/common/checkbox/checked_hover.png</file>
+        <file>image/common/checkbox/partchecked.png</file>
+        <file>image/common/checkbox/partchecked_disabled.png</file>
+        <file>image/common/checkbox/partchecked_hover.png</file>
+        <file>image/common/checkbox/unchecked.png</file>
+        <file>image/common/checkbox/unchecked_disabled.png</file>
+        <file>image/common/checkbox/unchecked_hover.png</file>
     </qresource>
 </RCC>

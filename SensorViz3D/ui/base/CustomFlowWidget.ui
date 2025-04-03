@@ -14,7 +14,7 @@
    <string>CustomFlowWidget</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QScrollArea {border-image:url(:/image/background.png)}</string>
+   <string notr="true"/>
   </property>
  </widget>
  <resources/>

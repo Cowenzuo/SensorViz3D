@@ -1,8 +1,11 @@
 #include "ChartsViewer.h"
 #include "ui_ChartsViewer.h"
 
+#include <QButtonGroup>
+
 #include "Application.h"
 #include "ProjectData.h"
+#include "charts/ChartPainter.h"
 
 ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::ChartsViewerClass())
 {
@@ -12,6 +15,8 @@ ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new U
 	ui->headerWidget->setMenuButtonVisible(false);
 	ui->headerWidget->setTitleVisible(false);
 
+	ui->customFlowWidgetSeg->setVisible(false);
+
 	connect(ui->headerWidget, &HeaderWidget::minBtnClicked, this, &QWidget::showMinimized);
 	connect(ui->headerWidget, &HeaderWidget::maxBtnClicked, this, &QWidget::showMaximized);
 	connect(ui->headerWidget, &HeaderWidget::restoreBtnClicked, this, &QWidget::showNormal);
@@ -20,7 +25,17 @@ ChartsViewer::ChartsViewer(QWidget* parent) : NativeBaseWindow(parent), ui(new U
 		});
 	connect(ui->comboBoxAnalyseDim, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::dimSelectChanged);
 	connect(ui->comboBoxWorkConditions, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::wcSelectChanged);
-	connect(ui->comboBoxSense, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::update);
+	connect(ui->comboBoxSense, qOverload<int>(&QComboBox::currentIndexChanged), this, &ChartsViewer::updateCharts);
+
+	// 创建按钮组
+	QButtonGroup* radioGroup = new QButtonGroup(this);
+	// 将三个QRadioButton添加到按钮组
+	radioGroup->addButton(ui->radioButtonAll);
+	radioGroup->addButton(ui->radioButtonOnlyts);
+	radioGroup->addButton(ui->radioButtonOnlyfs);
+	connect(radioGroup, qOverload<QAbstractButton*>(&QButtonGroup::buttonClicked), this, &ChartsViewer::modeChanged);
+
+	connect(ui->checkBoxShowSeg, &QCheckBox::stateChanged, this, &ChartsViewer::updateSegCharts);
 }
 
 ChartsViewer::~ChartsViewer()
@@ -36,8 +51,9 @@ void ChartsViewer::fill()
 	{
 		ui->comboBoxAnalyseDim->addItem(dim.first, QVariant::fromValue<ResType>(dim.second));
 	}
-	ui->comboBoxAnalyseDim->blockSignals(false);
 	ui->comboBoxAnalyseDim->setCurrentIndex(0);
+	dimSelectChanged(0);
+	ui->comboBoxAnalyseDim->blockSignals(false);
 }
 
 void ChartsViewer::changeEvent(QEvent* event)
@@ -63,17 +79,107 @@ bool ChartsViewer::hitTestCaption(const QPoint& pos)
 	return NativeBaseWindow::hitTestCaption(pos);
 }
 
-void ChartsViewer::update()
+void ChartsViewer::updateCharts()
 {
+	ui->customFlowWidget->removeAll();
 	if (!_currentCharts)
-	{
-		ui->customFlowWidget->removeAll();
 		return;
+
+	auto mode = getShowMode();
+	switch (mode)
+	{
+	case ChartsViewer::ShowMode::ALL:
+	{
+		ui->customFlowWidget->setSuitableItemSize(450, 360);
+		break;
+	}
+	case ChartsViewer::ShowMode::ONLYTS:
+	case ChartsViewer::ShowMode::ONLYFS:
+	{
+		ui->customFlowWidget->setSuitableItemSize(450, 180);
+		break;
+	}
+	default:
+		break;
 	}
 
-	auto sensorname = ui->comboBoxSense->currentText();
+	auto index = ui->comboBoxSense->currentIndex();
+	if (0 == index)
+	{
+		for (int i = 1; i < ui->comboBoxSense->count(); i++)
+		{
+			auto sensorname = ui->comboBoxSense->itemData(i, Qt::DisplayRole).toString();
+			auto widget = _currentCharts->getChart(sensorname, int(mode));
+			ui->customFlowWidget->addItem(widget);
+		}
+	}
+	else
+	{
+		auto sensorname = ui->comboBoxSense->currentText();
+		auto widget = _currentCharts->getChart(sensorname, int(mode));
+		ui->customFlowWidget->addItem(widget);
+	}
 
+	auto type = ui->comboBoxAnalyseDim->currentData().value<ResType>();
+	auto wcname = ui->comboBoxWorkConditions->currentData(Qt::DisplayRole).toString();
+	auto hasSegData = cApp->getProjData()->hasSegData(type, wcname);
+	ui->checkBoxShowSeg->setEnabled(hasSegData);
+	if (0 == ui->comboBoxSense->currentIndex())
+	{
+		ui->checkBoxShowSeg->setEnabled(false);
+		ui->checkBoxShowSeg->setChecked(false);
+	}
+	else
+	{
+		ui->checkBoxShowSeg->setEnabled(hasSegData);
+	}
+}
 
+void ChartsViewer::updateSegCharts(int state)
+{
+	if (!_currentCharts)
+		return;
+
+	auto mode = getShowMode();
+	switch (mode)
+	{
+	case ChartsViewer::ShowMode::ALL:
+	{
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 360);
+		break;
+	}
+	case ChartsViewer::ShowMode::ONLYTS:
+	case ChartsViewer::ShowMode::ONLYFS:
+	{
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 180);
+		break;
+	}
+	default:
+		break;
+	}
+
+	if (state == Qt::CheckState::Checked)
+	{
+		ui->customFlowWidgetSeg->setVisible(true);
+		ui->customFlowWidgetSeg->removeAll();
+		auto sensorname = ui->comboBoxSense->currentText();
+		auto widgets = _currentCharts->getSegChart(sensorname, int(mode));
+		for (auto& widget : widgets)
+		{
+			ui->customFlowWidgetSeg->addItem(widget);
+		}
+	}
+	else if (state == Qt::CheckState::Unchecked)
+	{
+		ui->customFlowWidgetSeg->setVisible(false);
+	}
+
+}
+
+void ChartsViewer::modeChanged(QAbstractButton* button)
+{
+	QRadioButton* selectedRadio = qobject_cast<QRadioButton*>(button);
+	updateCharts();
 }
 
 ChartsViewer::ShowMode ChartsViewer::getShowMode()
@@ -104,13 +210,14 @@ void ChartsViewer::dimSelectChanged(int index)
 	{
 		ui->comboBoxWorkConditions->addItem(wc.first, wc.second);
 	}
-	ui->comboBoxWorkConditions->blockSignals(false);
 	ui->comboBoxWorkConditions->setCurrentIndex(0);
+	wcSelectChanged(0);
+	ui->comboBoxWorkConditions->blockSignals(false);
 }
 
 void ChartsViewer::wcSelectChanged(int index)
 {
-	auto type = ui->comboBoxAnalyseDim->itemData(index).value<ResType>();
+	auto type = ui->comboBoxAnalyseDim->currentData().value<ResType>();
 	auto wcname = ui->comboBoxWorkConditions->itemData(index, Qt::DisplayRole).toString();
 
 	auto sensenames = cApp->getProjData()->geSensorNames(type, wcname);
@@ -123,8 +230,9 @@ void ChartsViewer::wcSelectChanged(int index)
 	{
 		ui->comboBoxSense->addItem(sn);
 	}
+	ui->comboBoxSense->setCurrentIndex(0);
+	updateCharts();
 	ui->comboBoxSense->blockSignals(false);
-	ui->comboBoxWorkConditions->setCurrentIndex(0);
 }
 
 //void ChartsViewer::senseSelectChanged(int index)
@@ -133,5 +241,5 @@ void ChartsViewer::wcSelectChanged(int index)
 //	//auto wcname = ui->comboBoxWorkConditions->itemData(index, Qt::DisplayRole).toString();
 //	//
 //	//auto sensorname = ui->comboBoxSense->itemData(index, Qt::DisplayRole).toString();
-//	update();
+//	updateCharts();
 //}
