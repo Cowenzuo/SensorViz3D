@@ -23,12 +23,7 @@ protected:
 
 private:
 
-	enum class ShowMode
-	{
-		ALL,
-		ONLYTS,
-		ONLYFS
-	};
+	enum class ShowMode { ALL, ONLYTS, ONLYFS };
 	ShowMode getShowMode();
 
 private:

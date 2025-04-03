@@ -668,7 +668,7 @@ void ProjectData::processSegmentedData(
 
 	const int segmentSize = exdata.dataCount / SEGMENT_COUNT;
 	const int offset = segmentSize / 2;
-	exdata.dataCountEach = offset;
+	exdata.dataCountEach = segmentSize;
 
 	// 分段处理（总段数-1，因为每段是相邻两段的中间区域）
 	for (int i = 0; i < SEGMENT_COUNT - 1; i++) {
