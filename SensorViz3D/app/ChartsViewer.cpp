@@ -90,13 +90,13 @@ void ChartsViewer::updateCharts()
 	{
 	case ChartsViewer::ShowMode::ALL:
 	{
-		ui->customFlowWidget->setSuitableItemSize(450, 260);
+		ui->customFlowWidget->setSuitableItemSize(450, 360);
 		break;
 	}
 	case ChartsViewer::ShowMode::ONLYTS:
 	case ChartsViewer::ShowMode::ONLYFS:
 	{
-		ui->customFlowWidget->setSuitableItemSize(450, 130);
+		ui->customFlowWidget->setSuitableItemSize(450, 180);
 		break;
 	}
 	default:
@@ -145,13 +145,13 @@ void ChartsViewer::updateSegCharts(int state)
 	{
 	case ChartsViewer::ShowMode::ALL:
 	{
-		ui->customFlowWidgetSeg->setSuitableItemSize(450, 300);
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 380);
 		break;
 	}
 	case ChartsViewer::ShowMode::ONLYTS:
 	case ChartsViewer::ShowMode::ONLYFS:
 	{
-		ui->customFlowWidgetSeg->setSuitableItemSize(450, 150);
+		ui->customFlowWidgetSeg->setSuitableItemSize(450, 200);
 		break;
 	}
 	default:

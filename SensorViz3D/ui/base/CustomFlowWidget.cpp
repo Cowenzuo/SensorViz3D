@@ -15,9 +15,10 @@ CustomFlowWidgetItem::CustomFlowWidgetItem(QWidget* parent) :QWidget(parent)
 	_title->setObjectName("title");
 	layout->addWidget(_title);
 	layout->addWidget(_container);
-	layout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 	layout->setSpacing(0);
 	layout->setMargin(5);
+	layout->setStretch(0, 0);
+	layout->setStretch(1, 1);
 	setLayout(layout);
 	setStyleSheet(R"(
 			#title{
