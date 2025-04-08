@@ -80,7 +80,7 @@ public:
 	~ProjectData();
 
 	// 主要逻辑上是设置原始数据包的路径，如果savePath、save都给了，会自动执行读取、处理、存储操作
-	// dirPath:	给入原始数据包的文件夹，这个文件夹应该包含"工况列表"、"应变"等Mat数据文件夹
+	// dirPath:	给入原始数据包的文件夹，这个文件夹应该包含"工况列表"、"应力"等Mat数据文件夹
 	// savePath:给入希望保存到的文件夹路径，必须是文件夹
 	// saveBackground:	是否保存
 	bool setDataPackage(const QString& dirPath, const QString& savePath = QString(), bool save = false);

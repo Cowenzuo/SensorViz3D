@@ -56,7 +56,7 @@ bool ProjectData::loadForVisual()
 	resFloderInfo.append({ "脉动压力",ResType::FP });
 	resFloderInfo.append({ "加速度",ResType::VA });
 	resFloderInfo.append({ "位移",ResType::VD });
-	resFloderInfo.append({ "应变",ResType::Strain });
+	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
@@ -110,7 +110,7 @@ bool ProjectData::saveBackground(const QString& saveDir, const QString& filename
 	resFloderInfo.append({ "脉动压力",ResType::FP });
 	resFloderInfo.append({ "加速度",ResType::VA });
 	resFloderInfo.append({ "位移",ResType::VD });
-	resFloderInfo.append({ "应变",ResType::Strain });
+	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
 	QStringList digits = { "二", "三", "四","五", "六", "七", "八", "九" };//"一",固定被工况所使用
@@ -584,7 +584,7 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 	}
 	case ResType::Strain:
 	{
-		name = "应变";
+		name = "应力";
 		unit = "MPa";
 		break;
 	}
