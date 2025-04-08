@@ -106,8 +106,16 @@ bool RWMAT::readMatFile(
 			double dataValue = 0.0;
 			if (type == ResType::HC)
 			{
-				double val0 = resValues[(i + 0) * valueRows + row] * 331.830718;
-				double val1 = resValues[(i + 2) * valueRows + row] * 66.051984;
+				//预先计算
+				// 油缸内径650mm，活塞杆直径360mm
+				// 无杆腔做功面积=π*(650/2)²= 331830.718375mm²
+				// 有杆腔做功面积=π*(650/2)²-π*(360/2)²=230043.118135mm²
+				// 由于油压单位是MPa，面积单位是mm²,结果为N，转为KN需要除以1000
+				// 最终结果单位是吨，需要给KN除以9.80665
+				// 无杆腔计算因子=331830.718375/9806.65 = 33.83731
+				// 有杆腔计算因子=230043.118135/9806.65	= 23.45787
+				double val0 = resValues[(i + 0) * valueRows + row] * 33.83731;//resValues是#1 #2 无杆腔油压
+				double val1 = resValues[(i + 2) * valueRows + row] * 23.45787;//resValues是#3 #4 有杆腔油压
 				dataValue = std::abs(val0 - val1);
 			}
 			else

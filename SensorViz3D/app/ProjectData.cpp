@@ -597,7 +597,7 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 	case ResType::HC:
 	{
 		name = "启闭力";
-		unit = "kN";
+		unit = "t";
 		break;
 	}
 	default:
