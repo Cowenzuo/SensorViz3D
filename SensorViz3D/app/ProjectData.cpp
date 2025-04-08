@@ -54,8 +54,10 @@ bool ProjectData::loadForVisual()
 	}
 	QVector<QPair<QString, ResType>>resFloderInfo;
 	resFloderInfo.append({ "脉动压力",ResType::FP });
-	resFloderInfo.append({ "加速度",ResType::VA });
-	resFloderInfo.append({ "位移",ResType::VD });
+	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
+	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
+	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
+	resFloderInfo.append({ "系统油压与行程",ResType::SysOP });
 	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
@@ -108,8 +110,10 @@ bool ProjectData::saveBackground(const QString& saveDir, const QString& filename
 
 	QVector<QPair<QString, ResType>>resFloderInfo;
 	resFloderInfo.append({ "脉动压力",ResType::FP });
-	resFloderInfo.append({ "加速度",ResType::VA });
-	resFloderInfo.append({ "位移",ResType::VD });
+	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
+	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
+	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
+	resFloderInfo.append({ "系统油压与行程",ResType::SysOP });
 	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
@@ -570,16 +574,22 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 		unit = "KPa";
 		break;
 	}
-	case ResType::VA:
+	case ResType::GPVA:
 	{
-		name = "振动加速度";
+		name = "闸墩振动加速度";
 		unit = "m/s²";
 		break;
 	}
-	case ResType::VD:
+	case ResType::GPVD:
 	{
-		name = "振动位移";
+		name = "闸墩振动位移";
 		unit = "m";
+		break;
+	}
+	case ResType::GVA:
+	{
+		name = "主闸振动速度";
+		unit = "m/s";
 		break;
 	}
 	case ResType::Strain:
@@ -598,6 +608,12 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 	{
 		name = "启闭力";
 		unit = "t";
+		break;
+	}
+	case ResType::SysOP:
+	{
+		name = "系统油压及行程";
+		unit = "";
 		break;
 	}
 	default:
@@ -821,6 +837,10 @@ bool ProjectData::saveAnalyseDataToDocx(
 		}
 	}
 
+	if (!dataWcs.count())
+	{
+		return true;
+	}
 	setNormalSelectionStyle(selection, ParagraphFormat::Level2Heading);
 	selection->dynamicCall("TypeText(const QString&)", "2. 分段时域频谱分析");
 	selection->dynamicCall("TypeParagraph()");

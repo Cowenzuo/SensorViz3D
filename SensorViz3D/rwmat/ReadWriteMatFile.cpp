@@ -56,7 +56,7 @@ bool RWMAT::readMatFile(
 
 	// 4. 数据维度校验
 	int singleDataCols = 1;
-	if (type == ResType::VA || type == ResType::VD)
+	if (type == ResType::GVA || type == ResType::GPVA || type == ResType::GPVD)
 	{
 		singleDataCols = 3;
 	}
@@ -120,13 +120,20 @@ bool RWMAT::readMatFile(
 			}
 			else
 			{
-				for (int col = 0; col < singleDataCols; ++col) {
-					double val = resValues[(i * singleDataCols + col) * valueRows + row];
-					dataValue += val * val;
+				if (1 == singleDataCols)
+				{
+					dataValue = resValues[(i * singleDataCols) * valueRows + row];
 				}
-				dataValue = std::sqrt(dataValue);
-
+				else
+				{
+					for (int col = 0; col < singleDataCols; ++col) {
+						double val = resValues[(i * singleDataCols + col) * valueRows + row];
+						dataValue += val * val;
+					}
+					dataValue = std::sqrt(dataValue);
+				}
 			}
+
 			if (dataValue<minValue || dataValue>maxValue)
 			{
 				dataValue = 0.0;
