@@ -56,11 +56,7 @@ bool RWMAT::readMatFile(
 
 	// 4. 数据维度校验
 	int singleDataCols = 1;
-	if (type == ResType::GVA || type == ResType::GPVA || type == ResType::GPVD)
-	{
-		singleDataCols = 3;
-	}
-	else if (type == ResType::HC)
+	if (type == ResType::HC)
 	{
 		singleDataCols = 2;
 	}

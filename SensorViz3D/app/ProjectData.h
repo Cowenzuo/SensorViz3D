@@ -53,7 +53,7 @@ struct ExtraData :public RawData
 	QVector<QMap<QString, Statistics>>segStatistics{};
 };
 
-enum class ResType { FP, GVA, GPVA, GPVD, Strain, OP, SysOP, HC };
+enum class ResType { FP, GVA, GPVA, GPVD, Strain, OP, SysOP, SysStroke, HC , VA1314};
 Q_DECLARE_METATYPE(ResType);
 
 class ChartPainter;

@@ -57,10 +57,12 @@ bool ProjectData::loadForVisual()
 	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
 	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
 	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
-	resFloderInfo.append({ "系统油压与行程",ResType::SysOP });
+	resFloderInfo.append({ "系统油压",ResType::SysOP });
+	resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
 	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
+	resFloderInfo.append({ "#13#14号孔",ResType::VA1314 });
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
 	{
 		auto folder = resFloderInfo[i];
@@ -113,11 +115,13 @@ bool ProjectData::saveBackground(const QString& saveDir, const QString& filename
 	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
 	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
 	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
-	resFloderInfo.append({ "系统油压与行程",ResType::SysOP });
+	resFloderInfo.append({ "系统油压",ResType::SysOP });
+	resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
 	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
-	QStringList digits = { "二", "三", "四","五", "六", "七", "八", "九" };//"一",固定被工况所使用
+	resFloderInfo.append({ "#13#14号孔",ResType::VA1314 });
+	QStringList digits = { "二", "三", "四","五", "六", "七", "八", "九", "十", "十一", "十二" };//"一",固定被工况所使用
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
 	{
 		auto folder = resFloderInfo[i];
@@ -588,8 +592,8 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 	}
 	case ResType::GVA:
 	{
-		name = "主闸振动速度";
-		unit = "m/s";
+		name = "主闸振动加速度";
+		unit = "m/s²";
 		break;
 	}
 	case ResType::Strain:
@@ -612,8 +616,20 @@ void ProjectData::getResTypeInfo(ResType type, QString& name, QString& unit)
 	}
 	case ResType::SysOP:
 	{
-		name = "系统油压及行程";
-		unit = "";
+		name = "系统油压";
+		unit = "MPa";
+		break;
+	}
+	case ResType::SysStroke:
+	{
+		name = "启闭机行程";
+		unit = "mm";
+		break;
+	}
+	case ResType::VA1314:
+	{
+		name = "#13#14号孔";
+		unit = "m/s²";
 		break;
 	}
 	default:
@@ -892,9 +908,9 @@ bool ProjectData::saveAnalyseDataToDocx(
 		auto chartMaxSavePath = QString("%1/工况%2_最大值对比.png").arg(exportRootPath, dataWcs[i].name);
 		auto chartMinSavePath = QString("%1/工况%2_最小值对比.png").arg(exportRootPath, dataWcs[i].name);
 		auto chartRmsSavePath = QString("%1/工况%2_均方根对比.png").arg(exportRootPath, dataWcs[i].name);
-		chartMax->toPixmap(530, 400).save(chartMaxSavePath);
-		chartMin->toPixmap(530, 400).save(chartMinSavePath);
-		chartRms->toPixmap(530, 400).save(chartRmsSavePath);
+		chartMax->toPixmap(940, 550).save(chartMaxSavePath);
+		chartMin->toPixmap(940, 550).save(chartMinSavePath);
+		chartRms->toPixmap(940, 550).save(chartRmsSavePath);
 
 		insertImage(selection, chartMaxSavePath, 530, 400);
 		setNormalSelectionStyle(selection, ParagraphFormat::ChartCaption);
