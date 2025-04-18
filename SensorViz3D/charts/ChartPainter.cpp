@@ -83,10 +83,10 @@ void ChartPainter::save(const QString& dirpath, int width, int height)
 		tspixmap.save(savepathts);
 		fspixmap.save(savepathfs);
 
-		QPixmap combinedPixmap(width, height * 2);
+		QPixmap combinedPixmap(width * 2, height);
 		QPainter painter(&combinedPixmap);
 		painter.drawPixmap(0, 0, tspixmap);
-		painter.drawPixmap(0, height, fspixmap);
+		painter.drawPixmap(width, 0, fspixmap);
 		QString savepath = QString("%1/测点%2.png").arg(dirpath, keys[i]);
 		combinedPixmap.save(savepath);
 	}
@@ -111,10 +111,10 @@ void ChartPainter::saveSeg(const QString& dirpath, int width, int height)
 			tspixmap.save(tssavepath);
 			fspixmap.save(fssavepath);
 
-			QPixmap combinedPixmap(width, height * 2);
+			QPixmap combinedPixmap(width * 2, height);
 			QPainter painter(&combinedPixmap);
 			painter.drawPixmap(0, 0, tspixmap);
-			painter.drawPixmap(0, height, fspixmap);
+			painter.drawPixmap(width, 0, fspixmap);
 			QString savepath = QString("%1/测点%2_段%3.png").arg(dirpath, keys[j], QString::number(i));
 			combinedPixmap.save(savepath);
 		}
@@ -204,25 +204,25 @@ void ChartPainter::processSensorData(
 	// 准备Y轴数据
 	QVector<double> fluctuation;
 	QVector<double> romData;
+	QVector<double> resata;
 	double min = 0, max = 0;
-	PSDA::preprocessData(sensorData, dataCount, romData, fluctuation, min, max, frequency, 1.96);
+	PSDA::preprocessData(sensorData, dataCount, resata, romData, fluctuation, min, max, frequency, 1.96);
 	// 准备时间轴数据
-	QVector<double> xData(romData.count());
-	for (int i = 0; i < romData.count(); ++i) {
-		xData[i] = i;// / double(frequency);
+	QVector<double> xData(resata.count());
+	for (int i = 0; i < resata.count(); ++i) {
+		xData[i] = double(i) / frequency;
 	}
-	double totalTime = xData.count();
 	// 创建时域图
 	auto tschart = new ScalableCustomPlot();
 	tschart->setTitle(QString("%1时域过程 测点%2").arg(_titleRootName, sensorName));
 	tschart->xAxis->setLabel("时间(s)");
 	tschart->yAxis->setLabel(QString("%1(%2)").arg(_titleRootName, _titleUnit));
-	tschart->xAxis->setRange(0, totalTime);
+	tschart->xAxis->setRange(0, xData.last());
 	tschart->yAxis->setRange(min, max);
 	tschart->yAxis->rescale(true);
 	//tschart->setOpenGl(true);
 	auto tsgraph = tschart->addGraph();
-	tsgraph->setData(xData, romData);
+	tsgraph->setData(xData, resata);
 	tsgraph->setPen(QPen(Qt::black));
 	tschart->setSelectableVisible(true);
 	tsgraph->setSelectable(QCP::stSingleData);
