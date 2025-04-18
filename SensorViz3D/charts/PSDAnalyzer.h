@@ -14,10 +14,11 @@ namespace PSDA {
 	bool preprocessData(
 		const double* data,
 		int datacount,
+		QVector<double>& resData,
 		QVector<double>& romData,
 		QVector<double>& fluctuation,
-		double& min,
-		double& max,
+		double& resmin,
+		double& resmax,
 		int order,
 		double sigmaThreshold = 2.0
 	);
@@ -41,4 +42,44 @@ namespace PSDA {
 		double maxFreqRatio = 0.5,
 		double outlierThreshold = 3.0
 	);
+	/**
+	* @brief 巴特沃斯高通滤波（二阶）
+	* @param input 输入信号
+	* @param output 输出信号
+	* @param count 数据点数
+	* @param sampleRate 采样率(Hz)
+	* @param cutoffFreq 截止频率(Hz)
+	*/
+	void butterworthHighPass(
+		const double* input,
+		double* output,
+		int count,
+		double sampleRate,
+		double cutoffFreq
+	);
+	/** @brief 去除线性趋势
+	* @param data 输入信号
+	* @param count 数据点数
+	*/
+	void detrendSignal(
+		double* data,
+		int count
+	);
+	/** @brief 主计算函数
+	* @param acc 输入加速度数据
+	* @param accCount 数据点数
+	* @param sampleRate 采样率(Hz)
+	* @param cutoffFreq 高通滤波截止频率(Hz)
+	* @param disp 输出位移数据
+	* @param dispCount 输出位移点数
+	*/
+	void calculateVD(
+		const double* acc,
+		int accCount,
+		double sampleRate,
+		double cutoffFreq,
+		double* disp,
+		int& dispCount
+	);
+
 } // namespace PSDA

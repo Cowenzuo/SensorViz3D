@@ -9,10 +9,11 @@
 bool PSDA::preprocessData(
 	const double* data,
 	int datacount,
+	QVector<double>& resData,
 	QVector<double>& romData,
 	QVector<double>& fluctuation,
-	double& min,
-	double& max,
+	double& resmin,
+	double& resmax,
 	int order,
 	double sigmaThreshold /*= 2.0*/
 )
@@ -29,6 +30,7 @@ bool PSDA::preprocessData(
 		return false;
 	}
 
+	resData.resize(numSegments * order);
 	romData.resize(numSegments);
 	fluctuation.resize(numSegments * order);
 
@@ -44,6 +46,16 @@ bool PSDA::preprocessData(
 		// 计算段内和与平方和
 		for (int i = 0; i < order; ++i) {
 			const double val = data[startIdx + i];
+			resData[startIdx + i] = val; // 直接赋值到resData
+			if (0 == seg)
+			{
+				resmin = resmax = val;
+			}
+			else
+			{
+				resmin = qMin(resmin, val);
+				resmax = qMax(resmax, val);
+			}
 			sum += val;
 			sumSq += val * val;
 		}
@@ -51,15 +63,6 @@ bool PSDA::preprocessData(
 		const double mean = sum / order;
 		romData[seg] = mean;
 		segmentStdDevs[seg] = sqrt((sumSq - sum * sum / order) / order);
-		if (0 == seg)
-		{
-			min = max = mean;
-		}
-		else
-		{
-			min = qMin(min, mean);
-			max = qMax(max, mean);
-		}
 	}
 
 	// 筛选有效波动数据
@@ -70,7 +73,6 @@ bool PSDA::preprocessData(
 		if (dev < 0 || std::abs(residual) > sigmaThreshold * dev) {
 			residual = romData[seg];
 		}
-
 		fluctuation[i] = residual;
 	}
 	return true;
@@ -192,4 +194,95 @@ void PSDA::calculatePowerSpectralDensity(
 	const int maxFreqIndex = qMin(static_cast<int>(maxFreqRatio * outputSize), outputSize - 1);
 	freqs.resize(maxFreqIndex + 1);
 	pxx.resize(maxFreqIndex + 1);
+}
+
+void PSDA::butterworthHighPass(const double* input, double* output, int count, double sampleRate, double cutoffFreq)
+{
+	const double nyquist = 0.5 * sampleRate;
+	const double normalCutoff = cutoffFreq / nyquist;
+	const double sqrt2 = 1.4142135623730951;
+
+	// 滤波器系数
+	double b0 = 1.0 / (1.0 + sqrt2 * normalCutoff + normalCutoff * normalCutoff);
+	double b1 = -2.0 * b0;
+	double b2 = b0;
+	double a1 = 2.0 * (normalCutoff * normalCutoff - 1.0) * b0;
+	double a2 = (1.0 - sqrt2 * normalCutoff + normalCutoff * normalCutoff) * b0;
+
+	// 前向滤波
+	std::vector<double> forward(count);
+	double x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0;
+	for (int i = 0; i < count; ++i) {
+		forward[i] = b0 * input[i] + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+		x2 = x1;
+		x1 = input[i];
+		y2 = y1;
+		y1 = forward[i];
+	}
+
+	// 反向滤波（零相位）
+	x1 = x2 = y1 = y2 = 0.0;
+	for (int i = count - 1; i >= 0; --i) {
+		output[i] = b0 * forward[i] + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+		x2 = x1;
+		x1 = forward[i];
+		y2 = y1;
+		y1 = output[i];
+	}
+}
+
+void PSDA::detrendSignal(double* data, int count)
+{
+	double sum = 0.0;
+	for (int i = 0; i < count; ++i) {
+		sum += data[i];
+	}
+	double mean = sum / count;
+
+	for (int i = 0; i < count; ++i) {
+		data[i] -= mean;
+	}
+}
+
+void PSDA::calculateVD(
+	const double* acc, 
+	int accCount, 
+	double sampleRate, 
+	double cutoffFreq, 
+	double* disp, 
+	int& dispCount
+)
+{
+	if (accCount < 10 || !acc || !disp) {
+		dispCount = 0;
+		return;
+	}
+
+	// 中间缓冲区
+	std::vector<double> processed(accCount);
+	std::vector<double> velocity(accCount);
+
+	// 1. 去趋势
+	std::copy(acc, acc + accCount, processed.begin());
+	detrendSignal(processed.data(), accCount);
+
+	// 2. 高通滤波
+	butterworthHighPass(processed.data(), processed.data(), accCount, sampleRate, cutoffFreq);
+
+	// 3. 第一次积分：加速度→速度
+	double dt = 1.0 / sampleRate;
+	velocity[0] = 0.0;
+	for (int i = 1; i < accCount; ++i) {
+		velocity[i] = velocity[i - 1] + (processed[i] + processed[i - 1]) * 0.5 * dt;
+	}
+
+	// 4. 二次积分：速度→位移
+	disp[0] = 0.0;
+	for (int i = 1; i < accCount; ++i) {
+		disp[i] = disp[i - 1] + (velocity[i] + velocity[i - 1]) * 0.5 * dt;
+	}
+
+	// 5. 后处理：去除积分漂移
+	detrendSignal(disp, accCount);
+	dispCount = accCount;
 }
