@@ -95,7 +95,6 @@ bool RWMAT::readMatFile(
 		bool statsInitialized = false;
 
 		// 7.2 处理每行数据
-		auto startSeq = removeSize;
 		auto endSeq = valueRows - removeSize - redundancy;
 		for (size_t row = removeSize, newIdx = 0; row < endSeq; ++row, ++newIdx) {
 			// 计算向量幅值

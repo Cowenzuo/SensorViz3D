@@ -31,3 +31,5 @@
 /.vs
 /x64Bin-Release
 /data
+/build
+/install
