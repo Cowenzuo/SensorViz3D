@@ -55,13 +55,9 @@ bool RWMAT::readMatFile(
 	}
 
 	// 4. 数据维度校验
-	int singleDataCols = 1;
-	if (type == ResType::HC)
-	{
-		singleDataCols = 2;
-	}
+
 	const size_t valueCols = mxGetN(datasArray);
-	const size_t expectedCols = sensorNames.size() * singleDataCols;
+	const size_t expectedCols = sensorNames.size();
 	if (valueCols != expectedCols) {
 		qWarning() << "Data columns mismatch. Expected:" << expectedCols
 			<< "Actual:" << valueCols;
@@ -99,36 +95,7 @@ bool RWMAT::readMatFile(
 		for (size_t row = removeSize, newIdx = 0; row < endSeq; ++row, ++newIdx) {
 			// 计算向量幅值
 			double dataValue = 0.0;
-			if (type == ResType::HC)
-			{
-				//预先计算
-				// 油缸内径650mm，活塞杆直径360mm
-				// 无杆腔做功面积=π*(650/2)²= 331830.718375mm²
-				// 有杆腔做功面积=π*(650/2)²-π*(360/2)²=230043.118135mm²
-				// 由于油压单位是MPa，面积单位是mm²,结果为N，转为KN需要除以1000
-				// 最终结果单位是吨，需要给KN除以9.80665
-				// 无杆腔计算因子=331830.718375/9806.65 = 33.83731
-				// 有杆腔计算因子=230043.118135/9806.65	= 23.45787
-				double val0 = resValues[(i + 0) * valueRows + row] * 33.83731;//resValues是#1 #2 无杆腔油压
-				double val1 = resValues[(i + 2) * valueRows + row] * 23.45787;//resValues是#3 #4 有杆腔油压
-				dataValue = std::abs(val0 - val1);
-			}
-			else
-			{
-				if (1 == singleDataCols)
-				{
-					dataValue = resValues[(i * singleDataCols) * valueRows + row];
-				}
-				else
-				{
-					for (int col = 0; col < singleDataCols; ++col) {
-						double val = resValues[(i * singleDataCols + col) * valueRows + row];
-						dataValue += val * val;
-					}
-					dataValue = std::sqrt(dataValue);
-				}
-			}
-
+			dataValue = resValues[i * valueRows + row];
 			if (dataValue<minValue || dataValue>maxValue)
 			{
 				dataValue = 0.0;

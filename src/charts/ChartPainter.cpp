@@ -40,12 +40,12 @@ ChartPainter::~ChartPainter()
 
 }
 
-void ChartPainter::setData(const ExtraData& exdata)
+void ChartPainter::setData(const ExtraData& exdata, bool removemean)
 {
 	// 全局数据
 	for (auto iter = exdata.data.begin(); iter != exdata.data.end(); ++iter)
 	{
-		processSensorData(iter.key(), iter.value(), exdata.dataCount, exdata.frequency, _imgTimeSeries, _imgFrequencySpectrum);
+		processSensorData(iter.key(), iter.value(), exdata.dataCount, exdata.frequency, _imgTimeSeries, _imgFrequencySpectrum, removemean);
 	}
 
 	if (!exdata.hasSegData)
@@ -62,7 +62,7 @@ void ChartPainter::setData(const ExtraData& exdata)
 		auto segData = exdata.segData[i];
 		for (auto segiter = segData.begin(); segiter != segData.end(); ++segiter)
 		{
-			processSensorData(segiter.key(), segiter.value(), exdata.dataCountEach, exdata.frequency, _imgSegDataTimeSeries[i], _imgSegDataFrequencySpectrum[i]);
+			processSensorData(segiter.key(), segiter.value(), exdata.dataCountEach, exdata.frequency, _imgSegDataTimeSeries[i], _imgSegDataFrequencySpectrum[i], removemean);
 		}
 	}
 }
@@ -198,7 +198,8 @@ void ChartPainter::processSensorData(
 	int dataCount,
 	double frequency,
 	QMap<QString, ScalableCustomPlot*>& timeSeriesMap,
-	QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap
+	QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap,
+	bool removemean
 )
 {
 	// 准备Y轴数据
@@ -208,10 +209,24 @@ void ChartPainter::processSensorData(
 	double min = 0, max = 0;
 	PSDA::preprocessData(sensorData, dataCount, resata, romData, fluctuation, min, max, frequency, 1.96);
 	// 准备时间轴数据
-	QVector<double> xData(resata.count());
-	for (int i = 0; i < resata.count(); ++i) {
-		xData[i] = double(i) / frequency;
+	QVector<double> xData;
+	if (removemean)
+	{
+		xData.resize(fluctuation.count());
+		for (int i = 0; i < fluctuation.count(); ++i) {
+			xData[i] = double(i) / frequency;
+		}
+		max = *std::max_element(fluctuation.constBegin(), fluctuation.constEnd());;
+		min = *std::min_element(fluctuation.constBegin(), fluctuation.constEnd());;
 	}
+	else
+	{
+		xData.resize(resata.count());
+		for (int i = 0; i < resata.count(); ++i) {
+			xData[i] = double(i) / frequency;
+		}
+	}
+
 	// 创建时域图
 	auto tschart = new ScalableCustomPlot();
 	tschart->setTitle(QString("%1时域过程 测点%2").arg(_titleRootName, sensorName));
@@ -222,7 +237,7 @@ void ChartPainter::processSensorData(
 	tschart->yAxis->rescale(true);
 	//tschart->setOpenGl(true);
 	auto tsgraph = tschart->addGraph();
-	tsgraph->setData(xData, resata);
+	tsgraph->setData(xData, removemean? fluctuation :resata);
 	tsgraph->setPen(QPen(Qt::black));
 	tschart->setSelectableVisible(true);
 	tsgraph->setSelectable(QCP::stSingleData);

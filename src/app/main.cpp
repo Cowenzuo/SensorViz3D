@@ -4,7 +4,7 @@
 #include "Application.h"
 
 //just for test
-//#include "ProjectData.h"
+#include "ProjectData.h"
 
 void setupSurface()
 {
@@ -29,10 +29,10 @@ int main(int argc, char* argv[])
 	app.showMainWindow(true);
 
 	//just for test
-	//ProjectData projectData(nullptr);
-	//projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
-	//projectData.setDataPackage("../data/2025_03_23_Experiment", "../data/2025_03_23_Experiment/export", true);
-	//projectData.setDataPackage("../data/2025_03_24_Experiment", "../data/2025_03_24_Experiment/export", true);
+	ProjectData projectData(nullptr);
+	projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
+	projectData.setDataPackage("../data/2025_03_23_Experiment", "../data/2025_03_23_Experiment/export", true);
+	projectData.setDataPackage("../data/2025_03_24_Experiment", "../data/2025_03_24_Experiment/export", true);
 
 	return app.exec();
 }

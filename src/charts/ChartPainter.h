@@ -10,7 +10,7 @@ public:
 	ChartPainter(const QString& name, const QString& unit) : _titleRootName(name), _titleUnit(unit) {}
 	virtual ~ChartPainter();
 
-	void setData(const ExtraData& exdata);
+	void setData(const ExtraData& exdata,bool removemean=false);
 	void save(const QString& dirpath, int width, int height);
 	void saveSeg(const QString& dirpath, int width, int height);
 
@@ -26,7 +26,8 @@ private:
 		int dataCount,
 		double frequency,
 		QMap<QString, ScalableCustomPlot*>& timeSeriesMap,
-		QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap
+		QMap<QString, ScalableCustomPlot*>& frequencySpectrumMap,
+		bool removemean=false
 	);
 
 private:
