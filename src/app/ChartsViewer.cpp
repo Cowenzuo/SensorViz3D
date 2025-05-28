@@ -223,6 +223,10 @@ void ChartsViewer::dimSelectChanged(int index)
 
 void ChartsViewer::wcSelectChanged(int index)
 {
+	if (_currentCharts)
+	{
+		delete _currentCharts;
+	}
 	auto type = ui->comboBoxAnalyseDim->currentData().value<ResType>();
 	auto wcname = ui->comboBoxWorkConditions->itemData(index, Qt::DisplayRole).toString();
 

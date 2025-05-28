@@ -54,23 +54,22 @@ bool ProjectData::loadForVisual()
 		return false;
 	}
 	QVector<QPair<QString, ResType>>resFloderInfo;
-	//resFloderInfo.append({ "脉动压力",ResType::FP });
-	//resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
-	//resFloderInfo.append({ "主闸振动位移",ResType::GVD });
-	//resFloderInfo.append({ "#14主闸V11V12振动加速度",ResType::GVAExtra });
-	//resFloderInfo.append({ "#14主闸V11V12振动位移",ResType::GVDExtra });
-	//resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
-	//resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
-	//resFloderInfo.append({ "系统油压",ResType::SysOP });
-	//resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
-	//resFloderInfo.append({ "应力",ResType::Strain });
+	resFloderInfo.append({ "脉动压力",ResType::FP });
+	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
+	resFloderInfo.append({ "主闸振动位移",ResType::GVD });
+	resFloderInfo.append({ "#14主闸V11V12振动加速度",ResType::GVAExtra });
+	resFloderInfo.append({ "#14主闸V11V12振动位移",ResType::GVDExtra });
+	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
+	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
+	resFloderInfo.append({ "系统油压",ResType::SysOP });
+	resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
+	resFloderInfo.append({ "应力",ResType::Strain });
 	resFloderInfo.append({ "油压",ResType::OP });
 	resFloderInfo.append({ "启闭力",ResType::HC });
-	//resFloderInfo.append({ "#13孔洞振动加速度",ResType::VA13 });
-	//resFloderInfo.append({ "#13孔洞振动位移",ResType::VD13 });
-	//resFloderInfo.append({ "#15孔洞振动加速度",ResType::VA15 });
-	//resFloderInfo.append({ "#15孔洞振动位移",ResType::VD15 });
-	//resFloderInfo.append({ "#15孔洞振动位移",ResType::VD15 });
+	resFloderInfo.append({ "#13孔洞振动加速度",ResType::VA13 });
+	resFloderInfo.append({ "#13孔洞振动位移",ResType::VD13 });
+	resFloderInfo.append({ "#15孔洞振动加速度",ResType::VA15 });
+	resFloderInfo.append({ "#15孔洞振动位移",ResType::VD15 });
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
 	{
 		auto folder = resFloderInfo[i];
@@ -105,21 +104,21 @@ bool ProjectData::saveBackground(const QString& saveDir, const QString& filename
 
 	QVector<QPair<QString, ResType>>resFloderInfo;
 	resFloderInfo.append({ "脉动压力",ResType::FP });
-	//resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
-	//resFloderInfo.append({ "主闸振动位移",ResType::GVD });
-	//resFloderInfo.append({ "#14主闸V11V12振动加速度",ResType::GVAExtra });
-	//resFloderInfo.append({ "#14主闸V11V12振动位移",ResType::GVDExtra });
-	//resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
-	//resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
-	//resFloderInfo.append({ "系统油压",ResType::SysOP });
-	//resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
+	resFloderInfo.append({ "主闸振动加速度",ResType::GVA });
+	resFloderInfo.append({ "主闸振动位移",ResType::GVD });
+	resFloderInfo.append({ "#14主闸V11V12振动加速度",ResType::GVAExtra });
+	resFloderInfo.append({ "#14主闸V11V12振动位移",ResType::GVDExtra });
+	resFloderInfo.append({ "闸墩振动加速度",ResType::GPVA });
+	resFloderInfo.append({ "闸墩振动位移",ResType::GPVD });
+	resFloderInfo.append({ "系统油压",ResType::SysOP });
+	resFloderInfo.append({ "启闭机行程",ResType::SysStroke });
 	resFloderInfo.append({ "应力",ResType::Strain });
-	//resFloderInfo.append({ "油压",ResType::OP });
-	//resFloderInfo.append({ "启闭力",ResType::HC });
-	//resFloderInfo.append({ "#13孔洞振动加速度",ResType::VA13 });
-	//resFloderInfo.append({ "#13孔洞振动位移",ResType::VD13 });
-	//resFloderInfo.append({ "#15孔洞振动加速度",ResType::VA15 });
-	//resFloderInfo.append({ "#15孔洞振动位移",ResType::VD15 });
+	resFloderInfo.append({ "油压",ResType::OP });
+	resFloderInfo.append({ "启闭力",ResType::HC });
+	resFloderInfo.append({ "#13孔洞振动加速度",ResType::VA13 });
+	resFloderInfo.append({ "#13孔洞振动位移",ResType::VD13 });
+	resFloderInfo.append({ "#15孔洞振动加速度",ResType::VA15 });
+	resFloderInfo.append({ "#15孔洞振动位移",ResType::VD15 });
 
 	//多线程加速(阻塞)
 	for (auto i = 0;i < resFloderInfo.count(); ++i)
@@ -223,7 +222,13 @@ ChartPainter* ProjectData::getCharts(ResType dimtype, const QString& wcname)
 		return nullptr;
 
 	const auto& sensorsData = data[wcname];
-	return sensorsData.charts;
+
+	QString resTitle, resUnit;
+	getResTypeInfo(dimtype, resTitle, resUnit);
+	ChartPainter* chart = new ChartPainter(resTitle, resUnit);
+	chart->setData(sensorsData.exData, (dimtype == ResType::Strain || dimtype == ResType::FP));
+
+	return chart;
 }
 
 bool ProjectData::hasSegData(ResType dimtype, const QString& wcname)
@@ -713,8 +718,8 @@ bool ProjectData::loadAnalyseDataFile(
 	double maxValue = valuerange[1].toDouble();
 
 	// 2. 根据资源类型获取相关信息
-	QString resTitle, resUnit;
-	getResTypeInfo(type, resTitle, resUnit);
+	//QString resTitle, resUnit;
+	//getResTypeInfo(type, resTitle, resUnit);
 
 	// 3. 处理目录下的所有MAT文件
 	QDir resDir(dirPath);
@@ -741,18 +746,10 @@ bool ProjectData::loadAnalyseDataFile(
 		processSegmentedData(exdata, wcName, segwcnames, sensorNames, sensorValid);
 
 		// 3.4 创建并配置图表
-		ChartPainter* chart = new ChartPainter(resTitle, resUnit);
-		if (type == ResType::Strain || type == ResType::FP)
-		{
-			chart->setData(exdata, true);
-		}
-		else
-		{
-			chart->setData(exdata, false);
-		}
-
+		//ChartPainter* chart = new ChartPainter(resTitle, resUnit);
+		//chart->setData(exdata, (type == ResType::Strain || type == ResType::FP));
 		// 3.5 存储结果
-		analyseData[wcName] = { exdata ,chart };
+		analyseData[wcName] = { exdata ,nullptr };
 	}
 	return true;
 }
