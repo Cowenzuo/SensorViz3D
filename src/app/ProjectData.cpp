@@ -12,6 +12,52 @@
 ProjectData::ProjectData(QObject* parent)
 	: QObject(parent)
 {
+	_sensorPostions[ResType::FP].push_back({ "P2",0.0,1.090410,2.152344 });
+	_sensorPostions[ResType::FP].push_back({ "P3",-0.0,1.770372,2.656265 });
+	_sensorPostions[ResType::FP].push_back({ "P4",-0.0,3.022708,3.594877 });
+	_sensorPostions[ResType::FP].push_back({ "P8",4.646248,1.752008,2.640294 });
+	_sensorPostions[ResType::FP].push_back({ "P9",4.752406,1.393011,1.915609 });
+	_sensorPostions[ResType::FP].push_back({ "P10",4.751841,2.107544,2.326183 });
+	_sensorPostions[ResType::FP].push_back({ "P8",-4.646248,1.752008,2.640294 });
+	_sensorPostions[ResType::FP].push_back({ "P9",-4.752406,1.393011,1.915609 });
+	_sensorPostions[ResType::FP].push_back({ "P10",-4.751841,2.107544,2.326183 });
+
+	_sensorPostions[ResType::Strain].push_back({ "Y1",0.0,1.090410,2.152344 });
+	_sensorPostions[ResType::Strain].push_back({ "Y2",-0.0,1.770372,2.656265 });
+	_sensorPostions[ResType::Strain].push_back({ "Y5",4.646248,1.752008,2.640294 });
+	_sensorPostions[ResType::Strain].push_back({ "Y6",4.752406,1.393011,1.915609 });
+	_sensorPostions[ResType::Strain].push_back({ "Y9",4.751841,2.107544,2.326183 });
+	_sensorPostions[ResType::Strain].push_back({ "Y5",-4.646248,1.752008,2.640294 });
+	_sensorPostions[ResType::Strain].push_back({ "Y6",-4.752406,1.393011,1.915609 });
+	_sensorPostions[ResType::Strain].push_back({ "Y9",-4.751841,2.107544,2.326183 });
+
+	_sensorPostions[ResType::GVA].push_back({ "V1",0.0,-2.11,0.838 });
+	_sensorPostions[ResType::GVA].push_back({ "V2",0.0,-2.839,2.007 });
+	_sensorPostions[ResType::GVA].push_back({ "V3",0.0,-3.66,3.122 });
+	_sensorPostions[ResType::GVA].push_back({ "V5",4.733 ,-2.11,0.838 });
+	_sensorPostions[ResType::GVA].push_back({ "V6",4.725,-3.66,3.122 });
+	_sensorPostions[ResType::GVA].push_back({ "V7",4.741,-2.354,5.815 });
+	_sensorPostions[ResType::GVA].push_back({ "V9",4.75,0.603,5.424 });
+	_sensorPostions[ResType::GVA].push_back({ "V10",4.894,4.345,5.336 });
+	_sensorPostions[ResType::GVA].push_back({ "V5",-4.733 ,-2.11,0.838 });
+	_sensorPostions[ResType::GVA].push_back({ "V6",-4.725,-3.66,3.122 });
+	_sensorPostions[ResType::GVA].push_back({ "V7",-4.741,-2.354,5.815 });
+	_sensorPostions[ResType::GVA].push_back({ "V9",-4.75,0.603,5.424 });
+	_sensorPostions[ResType::GVA].push_back({ "V10",-4.894,4.345,5.336 });
+
+	_sensorPostions[ResType::GVD].push_back({ "D1",0.0,-2.11,0.838 });
+	_sensorPostions[ResType::GVD].push_back({ "D2",0.0,-2.839,2.007 });
+	_sensorPostions[ResType::GVD].push_back({ "D3",0.0,-3.66,3.122 });
+	_sensorPostions[ResType::GVD].push_back({ "D5",4.733 ,-2.11,0.838 });
+	_sensorPostions[ResType::GVD].push_back({ "D6",4.725,-3.66,3.122 });
+	_sensorPostions[ResType::GVD].push_back({ "D7",4.741,-2.354,5.815 });
+	_sensorPostions[ResType::GVD].push_back({ "D9",4.75,0.603,5.424 });
+	_sensorPostions[ResType::GVD].push_back({ "D10",4.894,4.345,5.336 });
+	_sensorPostions[ResType::GVD].push_back({ "D5",-4.733 ,-2.11,0.838 });
+	_sensorPostions[ResType::GVD].push_back({ "D6",-4.725,-3.66,3.122 });
+	_sensorPostions[ResType::GVD].push_back({ "D7",-4.741,-2.354,5.815 });
+	_sensorPostions[ResType::GVD].push_back({ "D9",-4.75,0.603,5.424 });
+	_sensorPostions[ResType::GVD].push_back({ "D10",-4.894,4.345,5.336 });
 }
 
 ProjectData::~ProjectData()
@@ -241,6 +287,28 @@ bool ProjectData::hasSegData(ResType dimtype, const QString& wcname)
 		return false;
 
 	return data[wcname].exData.hasSegData;
+}
+
+ ExtraData ProjectData::getExtraData(ResType dimtype, const QString& wcname)
+{
+	if (_analyseDatas.contains(dimtype))
+	{
+		const auto& data = _analyseDatas.value(dimtype);
+		if (data.contains(wcname))
+		{
+			return data.value(wcname).exData;
+		}
+	}
+	return ExtraData();
+}
+
+QVector<SensorPositon> ProjectData::getSensorPositions(ResType dimtype)
+{
+	if (_sensorPostions.contains(dimtype))
+	{
+		return _sensorPostions[dimtype];
+	}
+	return QVector<SensorPositon>();
 }
 
 QString ProjectData::getRootDirpath()

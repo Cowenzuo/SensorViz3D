@@ -55,7 +55,6 @@ bool RWMAT::readMatFile(
 	}
 
 	// 4. 数据维度校验
-
 	const size_t valueCols = mxGetN(datasArray);
 	const size_t expectedCols = sensorNames.size();
 	if (valueCols != expectedCols) {

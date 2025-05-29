@@ -1,6 +1,8 @@
 #pragma once
 #include "ui/base/NativeBaseWindow.h"
 
+#include "ProjectData.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class ChartsViewerClass; };
 QT_END_NAMESPACE
@@ -16,6 +18,9 @@ public:
 	virtual~ChartsViewer();
 
 	void fill();
+
+signals:
+	void wcSelectChangedSignal(ResType type, QString wcname);
 
 protected:
 	void changeEvent(QEvent* event) override;

@@ -276,3 +276,33 @@
         	image: url(:/image/common/checkbox/checked_disabled.png);
         }
 )"
+
+#define QLabelStyle R"(
+        QLabel{
+        	color: #cdf3ff;
+        	font-size:18px;
+        }
+
+)"
+
+#define QSliderStyle R"(
+        QSlider::groove:horizontal{
+        	background: #ecf0f1;
+        	height: 10px;
+        	border-radius: 5px;
+        }
+        
+        QSlider::sub-page:horizontal{
+        	background: #3498db;
+        	height: 10px;
+        	border - radius: 5px;
+        }
+        
+        QSlider::handle:horizontal{
+        	background: #3498db;
+        	width: 10px;
+        	height: 10px;
+        	border-radius: 5px;
+        	margin:-2px 0;
+        }
+)"

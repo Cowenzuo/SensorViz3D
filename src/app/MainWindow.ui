@@ -37,7 +37,7 @@
      <widget class="HeaderWidget" name="headerWidget" native="true"/>
     </item>
     <item>
-     <widget class="Main3DWidget" name="main3DWidget" native="true"/>
+     <widget class="SceneViewer" name="main3DWidget" native="true"/>
     </item>
    </layout>
   </widget>
@@ -61,9 +61,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>Main3DWidget</class>
+   <class>SceneViewer</class>
    <extends>QWidget</extends>
-   <header location="global">ui/Main3DWidget.h</header>
+   <header location="global">3dviewer/SceneViewer.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

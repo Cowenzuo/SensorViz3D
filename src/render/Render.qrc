@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/Render">
+        <file>ModelInterpolation.frag</file>
+        <file>ModelInterpolation.vert</file>
+        <file>SensorPosition.txt</file>
+    </qresource>
+</RCC>

@@ -53,5 +53,8 @@
         <file>image/common/checkbox/unchecked.png</file>
         <file>image/common/checkbox/unchecked_disabled.png</file>
         <file>image/common/checkbox/unchecked_hover.png</file>
+        <file>image/player/player_pause.png</file>
+        <file>image/player/player_play.png</file>
+        <file>image/player/player_stop.png</file>
     </qresource>
 </RCC>

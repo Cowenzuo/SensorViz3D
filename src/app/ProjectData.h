@@ -64,6 +64,18 @@ struct AnalyseData
 	ExtraData exData;
 	ChartPainter* charts;
 };
+
+struct SensorPositon {
+	SensorPositon() {};
+	SensorPositon(const QString& iname, double ix, double iy, double iz) :
+		name(iname), x(ix), y(iy), z(iz)
+	{
+	}
+	QString name{ "" };
+	double x{ 0.0 };
+	double y{ 0.0 };
+	double z{ 0.0 };
+};
 class ProjectData : public QObject
 {
 	Q_OBJECT
@@ -74,6 +86,7 @@ private:
 
 	QMap<QString, WorkingConditions> _workingConditions;
 	QMap<ResType, QMap<QString, AnalyseData>> _analyseDatas;
+	QMap<ResType, QVector<SensorPositon>> _sensorPostions;
 
 public:
 	ProjectData(QObject* parent = nullptr);
@@ -111,6 +124,11 @@ public:
 	ChartPainter* getCharts(ResType dimtype, const QString& wcname);
 	//通过枚举量以及工况名，获取当前工况有没有分断数据
 	bool hasSegData(ResType dimtype, const QString& wcname);
+
+	ExtraData getExtraData(ResType dimtype, const QString& wcname);
+
+	QVector<SensorPositon> getSensorPositions(ResType dimtype);
+
 public:
 	QString getRootDirpath();
 	QString getRootName();

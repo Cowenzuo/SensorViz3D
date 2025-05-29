@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "ui_SceneViewer.h"
 
+#include <osg/Node>
 #include <osg/Group>
 #include <osg/Uniform>
 #include <osgQOpenGL/osgQOpenGLWidget>
@@ -26,6 +27,7 @@ private:
 	Ui::SceneViewerClass* ui;
 	AutosizeosgQt* _osgWidget;
 	osg::ref_ptr<osg::Group> _rootNode{ new osg::Group };
+	osg::ref_ptr<osg::Node> _modelNode{ };
 public:
 	SceneViewer(QWidget* parent = nullptr);
 	~SceneViewer();
@@ -35,6 +37,9 @@ public:
 	};
 	osg::Group* getRootNode() {
 		return _rootNode.get();
+	}
+	osg::Node* getModelNode() {
+		return _modelNode.get();
 	}
 
 protected:

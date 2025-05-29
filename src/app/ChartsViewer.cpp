@@ -243,6 +243,8 @@ void ChartsViewer::wcSelectChanged(int index)
 	ui->comboBoxSense->setCurrentIndex(0);
 	updateCharts();
 	ui->comboBoxSense->blockSignals(false);
+
+	emit wcSelectChangedSignal(type, wcname);
 }
 
 //void ChartsViewer::senseSelectChanged(int index)

@@ -32,11 +32,14 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 		+ QString(ComboBoxStyle)
 		+ QString(QScrollAreaStyle)
 		+ QString(QCheckBoxStyle)
+		+ QString(QLabelStyle)
+		+ QString(QSliderStyle)
 	);
 
 	_projectData = new ProjectData();
 	_mainWindow = new MainWindow();
 	_chartsViewer = new ChartsViewer();
+	connect(_chartsViewer, &ChartsViewer::wcSelectChangedSignal, _mainWindow, &MainWindow::wcSelectChangedSlot);
 }
 
 Application::~Application()

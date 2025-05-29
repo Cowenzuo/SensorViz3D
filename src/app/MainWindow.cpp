@@ -6,7 +6,10 @@
 #include "Application.h"
 #include "ChartsViewer.h"
 #include "ProjectData.h"
+#include "SceneCtrl.h"
 #include "ui/base/OpeMessageBox.h"
+#include "ui/SceneViewerSettings.h"
+#include "ui/RendPlayer.h"
 
 MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::MainWindowClass())
 {
@@ -22,11 +25,40 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 		});
 	connect(ui->headerWidget, &HeaderWidget::menuButtonTriggered, this, &MainWindow::headerMenuTriggered);
 	//connect(ui->headerWidget, &HeaderWidget::closeBtnClicked, _customPlots, &QWidget::close);
+
+	auto sceneWidgetSize = ui->main3DWidget->size();
+	_widgetSvs = new SceneViewerSettings(this);
+	_widgetSvs->move(sceneWidgetSize.width() - 350, ui->headerWidget->height() + 10);
+	_widgetSvs->raise();
+
+	_widgetRp = new RendPlayer(this);
+	_widgetRp->move((sceneWidgetSize.width() - _widgetRp->width()) / 2.0, height() - 200);
+	_widgetRp->raise();
+
+	_sceneCtrl = new SceneCtrl(ui->main3DWidget);
 }
 
 MainWindow::~MainWindow()
 {
 	delete ui;
+}
+
+SceneViewer* MainWindow::getSceneViewer()
+{
+	return ui->main3DWidget;
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+	auto sceneWidgetSize = ui->main3DWidget->size();
+	if (_widgetSvs)
+	{
+		_widgetSvs->move(sceneWidgetSize.width() - 350, ui->headerWidget->height() + 10);
+	}
+	if (_widgetRp)
+	{
+		_widgetRp->move((sceneWidgetSize.width() - _widgetRp->width()) / 2.0, height() - 100);
+	}
 }
 
 void MainWindow::changeEvent(QEvent* event)
@@ -52,6 +84,46 @@ bool MainWindow::hitTestCaption(const QPoint& pos)
 	return NativeBaseWindow::hitTestCaption(pos);
 }
 
+void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
+{
+	_currentDimType = type;
+	_currentWcname = wcname;
+	_sceneCtrl->uninstallSimRender();
+
+	auto pos = cApp->getProjData()->getSensorPositions(type);
+	if (pos.isEmpty())
+	{
+		return;
+	}
+	auto& exdata = cApp->getProjData()->getExtraData(type, wcname);
+	_widgetRp->setRange(0, exdata.dataCount - 1);
+
+	auto weight = _widgetSvs->getCurrentWeight();
+
+	double min, max;
+	bool firstCompare = true;
+	for (auto i = 0; i < pos.count(); i++)
+	{
+		auto fullName = pos[i].name + ((type == ResType::GVA || type == ResType::GVD) ? (QString("-") + weight) : "");
+		if (exdata.statistics.contains(fullName))
+		{
+			if (firstCompare)
+			{
+				firstCompare = false;
+				min = exdata.statistics[fullName].min;
+				max = exdata.statistics[fullName].max;
+			}
+			else
+			{
+				min = qMin(exdata.statistics[fullName].min, min);
+				max = qMax(exdata.statistics[fullName].max, max);
+			}
+		}
+	}
+	max = qMax(qAbs(min), qAbs(max));//正负只是方向而已，因此极值需要做取模
+	_sceneCtrl->installSimRender(pos, max);
+}
+
 void MainWindow::headerMenuTriggered() {
 	auto chartsViewerVisible = cApp->getChartsViewer()->isVisible();
 	auto isSetData = !(cApp->getProjData()->getRootDirpath().isEmpty());
@@ -63,17 +135,17 @@ void MainWindow::headerMenuTriggered() {
 	QAction* viewTableImg = menu.addAction("查看报表");
 	viewTableImg->setCheckable(true);
 	viewTableImg->setChecked(chartsViewerVisible);
-	QAction* saveToLoacl = menu.addAction("导出数据图表");
+	//QAction* saveToLoacl = menu.addAction("导出数据图表");
 
 	importDataPackage->setEnabled(!isSetData);
 	generateReport->setEnabled(isSetData && !isLoadData);
 	viewTableImg->setEnabled(isLoadData);
-	saveToLoacl->setEnabled(isSetData);
+	//saveToLoacl->setEnabled(isSetData);
 
 	connect(importDataPackage, &QAction::triggered, this, &MainWindow::importDataPkgTriggered);
 	connect(generateReport, &QAction::triggered, this, &MainWindow::generateReportTriggered);
 	connect(viewTableImg, &QAction::toggled, this, &MainWindow::viewTableImgTriggered);
-	connect(saveToLoacl, &QAction::triggered, this, &MainWindow::saveToLoaclTriggered);
+	//connect(saveToLoacl, &QAction::triggered, this, &MainWindow::saveToLoaclTriggered);
 	menu.exec(QCursor::pos());
 }
 
