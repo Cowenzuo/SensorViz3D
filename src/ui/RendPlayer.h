@@ -17,6 +17,8 @@ public:
 
 	void setRange(int min, int max);
 
+signals:
+	void timestampChanged(int index);
 private:
 	Ui::RendPlayerClass *ui;
 };

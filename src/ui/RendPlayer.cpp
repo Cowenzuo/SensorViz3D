@@ -5,6 +5,7 @@ RendPlayer::RendPlayer(QWidget *parent)
 	, ui(new Ui::RendPlayerClass())
 {
 	ui->setupUi(this);
+	connect(ui->hSliderTimestamp, &QSlider::valueChanged, this, &RendPlayer::timestampChanged);
 }
 
 RendPlayer::~RendPlayer()
