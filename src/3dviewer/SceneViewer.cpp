@@ -79,7 +79,7 @@ void SceneViewer::on3DInitialized()
 	_rootNode->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 	//_rootNode->getOrCreateStateSet()->setMode(GL_DEPTH_TEST, osg::StateAttribute::ON);
 	//_rootNode->getOrCreateStateSet()->setMode(GL_BLEND, osg::StateAttribute::ON);
-	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.ive");
+	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.fbx");
 	_modelNode = osgDB::readNodeFile(modelpath.toUtf8().data());
 	_rootNode->addChild(_modelNode.get());
 	viewer->setSceneData(_rootNode.get());
