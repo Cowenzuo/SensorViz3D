@@ -30,10 +30,15 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 	_widgetSvs = new SceneViewerSettings(this);
 	_widgetSvs->move(sceneWidgetSize.width() - 350, ui->headerWidget->height() + 10);
 	_widgetSvs->raise();
+	connect(_widgetSvs, &SceneViewerSettings::currentWeightChanged, this, &MainWindow::handleWeightChanged);
+	connect(_widgetSvs, &SceneViewerSettings::maxThresholdChanged, this, &MainWindow::handleMaxThresholdChanged);
+	connect(_widgetSvs, &SceneViewerSettings::radiationThresholdChanged, this, &MainWindow::handleRadiationThresholdChanged);
+
 
 	_widgetRp = new RendPlayer(this);
 	_widgetRp->move((sceneWidgetSize.width() - _widgetRp->width()) / 2.0, height() - 200);
 	_widgetRp->raise();
+	connect(_widgetRp, &RendPlayer::timestampChanged, this, &MainWindow::handleTimestampChanged);
 
 	_sceneCtrl = new SceneCtrl(ui->main3DWidget);
 }
@@ -92,19 +97,16 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 
 	auto pos = cApp->getProjData()->getSensorPositions(type);
 	if (pos.isEmpty())
-	{
 		return;
-	}
 	auto& exdata = cApp->getProjData()->getExtraData(type, wcname);
 	_widgetRp->setRange(0, exdata.dataCount - 1);
-
 	auto weight = _widgetSvs->getCurrentWeight();
-
 	double min, max;
 	bool firstCompare = true;
+	QVector<float> values;
 	for (auto i = 0; i < pos.count(); i++)
 	{
-		auto fullName = pos[i].name + ((type == ResType::GVA || type == ResType::GVD) ? (QString("-") + weight) : "");
+		auto fullName = pos[i].name + ((_currentDimType == ResType::GVA || _currentDimType == ResType::GVD) ? (QString("-") + weight) : "");
 		if (exdata.statistics.contains(fullName))
 		{
 			if (firstCompare)
@@ -121,7 +123,9 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 		}
 	}
 	max = qMax(qAbs(min), qAbs(max));//正负只是方向而已，因此极值需要做取模
-	_sceneCtrl->installSimRender(pos, max);
+	_widgetSvs->resetMaxThresholdValue(max);
+
+	_sceneCtrl->installSimRender(pos);
 }
 
 void MainWindow::headerMenuTriggered() {
@@ -216,4 +220,47 @@ void MainWindow::saveToLoaclTriggered()
 	}
 	dirPath += QString("/Export_%1").arg(QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss"));
 	cApp->getProjData()->saveBackground(dirPath, "");
+}
+
+void MainWindow::handleTimestampChanged(int index)
+{
+	if (_currentWcname.isEmpty())
+		return;
+	auto pos = cApp->getProjData()->getSensorPositions(_currentDimType);
+	if (pos.isEmpty())
+		return;
+	auto& exdata = cApp->getProjData()->getExtraData(_currentDimType, _currentWcname);
+	auto weight = _widgetSvs->getCurrentWeight();
+	QVector<float> values;
+	for (auto i = 0; i < pos.count(); i++)
+	{
+		auto fullName = pos[i].name + ((_currentDimType == ResType::GVA || _currentDimType == ResType::GVD) ? (QString("-") + weight) : "");
+		if (exdata.statistics.contains(fullName))
+		{
+
+			values.push_back(qAbs(exdata.data[fullName][index]));
+		}
+	}
+
+	for (size_t i = 0; i < values.count(); i++)
+	{
+		values[i] = values[i] / _widgetSvs->getMaxThresholdValue();
+		values[i] = qMin(values[i], 1.0f);
+	}
+	_sceneCtrl->updateSimValues(values);
+}
+
+void MainWindow::handleWeightChanged(const QString& value)
+{
+
+}
+
+void MainWindow::handleMaxThresholdChanged(float value)
+{
+
+}
+
+void MainWindow::handleRadiationThresholdChanged(float value)
+{
+
 }

@@ -36,6 +36,10 @@ private slots:
 	void viewTableImgTriggered(bool open);
 	void saveToLoaclTriggered();
 
+	void handleTimestampChanged(int index);
+	void handleWeightChanged(const QString& value);
+	void handleMaxThresholdChanged(float value);
+	void handleRadiationThresholdChanged(float value);
 private:
 	Ui::MainWindowClass* ui;
 
