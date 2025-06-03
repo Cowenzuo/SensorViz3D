@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 	connect(_widgetRp, &RendPlayer::timestampChanged, this, &MainWindow::handleTimestampChanged);
 
 	_sceneCtrl = new SceneCtrl(ui->main3DWidget);
+	_sceneCtrl->installSimRender(QVector<SensorPositon>());
 }
 
 MainWindow::~MainWindow()
@@ -124,6 +125,7 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 	}
 	max = qMax(qAbs(min), qAbs(max));//正负只是方向而已，因此极值需要做取模
 	_widgetSvs->resetMaxThresholdValue(max);
+	_widgetSvs->resetRadiationThresholdValue(ui->main3DWidget->getModelNodeRadius() * 2.0);
 
 	_sceneCtrl->installSimRender(pos);
 }
@@ -252,15 +254,16 @@ void MainWindow::handleTimestampChanged(int index)
 
 void MainWindow::handleWeightChanged(const QString& value)
 {
-
+	handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }
 
 void MainWindow::handleMaxThresholdChanged(float value)
 {
-
+	handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }
 
 void MainWindow::handleRadiationThresholdChanged(float value)
 {
-
+	_sceneCtrl->updateRadiationThreshold(value);
+	//handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }

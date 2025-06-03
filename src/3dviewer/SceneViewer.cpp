@@ -40,6 +40,35 @@ SceneViewer::~SceneViewer()
 	delete ui;
 }
 
+float SceneViewer::getModelNodeRadius()
+{
+	if (_modelNode.valid())
+	{
+		return _modelNode->computeBound().radius();
+	}
+	return 0.0f;
+}
+
+void SceneViewer::setSensorPos(osg::Vec3Array* pos)
+{
+	int sensorSize = _sensorNodes.size();
+	for (int i = 0; i < sensorSize; i++)
+	{
+		_rootNode->removeChild(_sensorNodes[i]);
+	}
+
+	int posSize = pos->size();
+	for (int i = 0; i < posSize; i++)
+	{
+		auto sensorNode = new osg::ShapeDrawable(new osg::Sphere(pos->at(i), 0.05f));
+		sensorNode->setColor(osg::Vec4(1.0, 0.0, 0.0, 1.0));
+		osg::ref_ptr<osg::Geode> geode = new osg::Geode();
+		geode->addDrawable(sensorNode);
+		_sensorNodes.push_back(geode.get());
+		_rootNode->addChild(geode.get());
+	}
+}
+
 void SceneViewer::resizeEvent(QResizeEvent* event)
 {
 	if (!_osgWidget || !_osgWidget->getOsgViewer() || !_osgWidget->getOsgViewer()->getCamera()) {
@@ -81,6 +110,7 @@ void SceneViewer::on3DInitialized()
 	//_rootNode->getOrCreateStateSet()->setMode(GL_BLEND, osg::StateAttribute::ON);
 	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.fbx");
 	_modelNode = osgDB::readNodeFile(modelpath.toUtf8().data());
+
 	_rootNode->addChild(_modelNode.get());
 	viewer->setSceneData(_rootNode.get());
 

@@ -19,7 +19,7 @@ bool SceneCtrl::installSimRender(QVector<SensorPositon> sp)
 		_model = _sceneViewer->getModelNode();
 	if (!_model.valid())
 		return false;
-
+	auto radius = _model->computeBound().radius();
 	auto pStateSet = _model->getOrCreateStateSet();
 	if (!_simRender.valid())
 	{
@@ -29,7 +29,9 @@ bool SceneCtrl::installSimRender(QVector<SensorPositon> sp)
 		osg::ref_ptr<osg::Uniform> valueNumUniform = new osg::Uniform(osg::Uniform::INT, "uValueNum");//有效点的数量
 		osg::ref_ptr<osg::Uniform> posUniform = new osg::Uniform(osg::Uniform::FLOAT_VEC3, "uPositions", 20);//最大20个，不做动态的了，要和shader里面配对!
 		osg::ref_ptr<osg::Uniform> valuesUniform = new osg::Uniform(osg::Uniform::FLOAT, "uValues", 20);
+		osg::ref_ptr<osg::Uniform> rtUniform = new osg::Uniform(osg::Uniform::FLOAT, "uRadiationThreshold");
 		valueNumUniform->set(0);
+		rtUniform->set(0.0);
 		for (int i = 0;i < 20;++i)
 		{
 			posUniform->setElement(i, osg::Vec3f(0.0f, 0.0f, 0.0f));
@@ -39,17 +41,21 @@ bool SceneCtrl::installSimRender(QVector<SensorPositon> sp)
 		pStateSet->addUniform(valueNumUniform.get());
 		pStateSet->addUniform(posUniform.get());
 		pStateSet->addUniform(valuesUniform.get());
+		pStateSet->addUniform(rtUniform.get());
 	}
 	pStateSet->getUniform("uValueNum")->set(sp.count());
 	auto vuniform = pStateSet->getUniform("uPositions");
+	osg::Vec3Array* pos = new osg::Vec3Array;
 	for (int i = 0; i < sp.count(); i++)
 	{
 		vuniform->setElement(i, osg::Vec3f(float(sp[i].x), float(sp[i].y), float(sp[i].z)));
 
-		osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-		geode->addDrawable(new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(float(sp[i].x), float(sp[i].y), float(sp[i].z)), 0.1f)));
-		_sceneViewer->getRootNode()->addChild(geode.get());
+		pos->push_back(osg::Vec3(sp[i].x, sp[i].y, sp[i].z));
+		//osg::ref_ptr<osg::Geode> geode = new osg::Geode();
+		//geode->addDrawable(new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(float(sp[i].x), float(sp[i].y), float(sp[i].z)), 0.1f)));
+		//_sceneViewer->getRootNode()->addChild(geode.get());
 	}
+	_sceneViewer->setSensorPos(pos);
 	pStateSet->setAttributeAndModes(_simRender, osg::StateAttribute::ON);
 	return true;
 }
@@ -70,6 +76,17 @@ bool  SceneCtrl::updateSimValues(QVector<float> values)
 	{
 		vuniform->setElement(i, values[i]);
 	}
+	return true;
+}
+
+bool SceneCtrl::updateRadiationThreshold(float value)
+{
+	if (!_simRender.valid() || !_model.valid())
+		return false;
+
+	auto pStateSet = _model->getOrCreateStateSet();
+	auto rtuniform = pStateSet->getUniform("uRadiationThreshold");
+	rtuniform->set(value);
 	return true;
 }
 

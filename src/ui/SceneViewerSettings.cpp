@@ -51,6 +51,10 @@ float SceneViewerSettings::getMaxThresholdValue()
 
 void SceneViewerSettings::resetRadiationThresholdValue(float value)
 {
+	if (preRadiationValue!=-1.0)
+	{
+		return;
+	}
 	preRadiationValue = value;
 	ui->labelRadiationThreshold->setText(QString::number(value));
 	ui->hSliderRadiationThreshold->setValue(1000);

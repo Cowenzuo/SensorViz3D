@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QTimer>
 #include "ui_RendPlayer.h"
 
 QT_BEGIN_NAMESPACE
@@ -12,13 +13,21 @@ class RendPlayer : public QWidget
 	Q_OBJECT
 
 public:
-	RendPlayer(QWidget *parent = nullptr);
+	RendPlayer(QWidget* parent = nullptr);
 	~RendPlayer();
 
 	void setRange(int min, int max);
 
-signals:
-	void timestampChanged(int index);
+	int getCurrentTimpstamp();
+
+
+	Q_SLOT void btnPlayerToggled(bool checked);
+	Q_SLOT void btnStopClicked();
+	Q_SLOT void onTimeout();
+
+	Q_SIGNAL void timestampChanged(int index);
+
 private:
-	Ui::RendPlayerClass *ui;
+	Ui::RendPlayerClass* ui;
+	QTimer* _timer{ new QTimer };
 };

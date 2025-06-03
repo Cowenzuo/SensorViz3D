@@ -27,6 +27,7 @@
 	#version 110
 
 	uniform int uValueNum;
+	uniform float uRadiationThreshold;
 	uniform vec3 uPositions[20];
 	uniform float uValues[20];
 
@@ -59,11 +60,13 @@
 			{
 				vec3 pos = uPositions[i];
 				len[i] = 1.0 / pow(length(vecWorldPos - pos.xyz),2.0);
+				if(uRadiationThreshold>0.0&&len[i]>uRadiationThreshold){continue;}
 				lengthAll += len[i];
 			}
 			float fValueAll=0.0;
 			for(int i=0;i<uValueNum;++i)
 			{
+				if(uRadiationThreshold>0.0&&len[i]>uRadiationThreshold){continue;}
 				fValueAll += (uValues[i] *  len[i]);
 			}
 			if(0.0 < lengthAll && 0.0 < fValueAll){
@@ -93,6 +96,8 @@ class SceneViewer;
 		bool installSimRender(QVector<SensorPositon> sp);
 		//0~1.0之间的值，提前算好再给进来
 		bool updateSimValues(QVector<float> values);
+
+		bool updateRadiationThreshold(float value);
 
 		bool uninstallSimRender();
 
