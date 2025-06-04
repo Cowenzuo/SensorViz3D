@@ -56,5 +56,6 @@
         <file>image/player/player_pause.png</file>
         <file>image/player/player_play.png</file>
         <file>image/player/player_stop.png</file>
+        <file>image/colormap.png</file>
     </qresource>
 </RCC>

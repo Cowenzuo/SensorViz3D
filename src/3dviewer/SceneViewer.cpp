@@ -108,8 +108,12 @@ void SceneViewer::on3DInitialized()
 	_rootNode->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 	//_rootNode->getOrCreateStateSet()->setMode(GL_DEPTH_TEST, osg::StateAttribute::ON);
 	//_rootNode->getOrCreateStateSet()->setMode(GL_BLEND, osg::StateAttribute::ON);
-	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.fbx");
+	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.obj");
 	_modelNode = osgDB::readNodeFile(modelpath.toUtf8().data());
+
+	//osg::ref_ptr<osg::MatrixTransform> mtx = new osg::MatrixTransform;
+	//mtx->setMatrix(osg::Matrix::rotate(osg::DegreesToRadians(90.0f), osg::Vec3(1.0f, 0.0f, 0.0f)));
+	//mtx->addChild(_modelNode.get());
 
 	_rootNode->addChild(_modelNode.get());
 	viewer->setSceneData(_rootNode.get());

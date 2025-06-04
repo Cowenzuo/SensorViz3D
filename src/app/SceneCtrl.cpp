@@ -31,7 +31,7 @@ bool SceneCtrl::installSimRender(QVector<SensorPositon> sp)
 		osg::ref_ptr<osg::Uniform> valuesUniform = new osg::Uniform(osg::Uniform::FLOAT, "uValues", 20);
 		osg::ref_ptr<osg::Uniform> rtUniform = new osg::Uniform(osg::Uniform::FLOAT, "uRadiationThreshold");
 		valueNumUniform->set(0);
-		rtUniform->set(0.0);
+		rtUniform->set(0.0f);
 		for (int i = 0;i < 20;++i)
 		{
 			posUniform->setElement(i, osg::Vec3f(0.0f, 0.0f, 0.0f));

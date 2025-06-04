@@ -10,6 +10,7 @@
 #include "ui/base/OpeMessageBox.h"
 #include "ui/SceneViewerSettings.h"
 #include "ui/RendPlayer.h"
+#include "ui/SensorValues.h"
 
 MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::MainWindowClass())
 {
@@ -40,6 +41,11 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 	_widgetRp->raise();
 	connect(_widgetRp, &RendPlayer::timestampChanged, this, &MainWindow::handleTimestampChanged);
 
+	_sceneValue = new SensorValues(this);
+	_sceneValue->setAttribute(Qt::WA_TransparentForMouseEvents);
+	_sceneValue->move(10, ui->headerWidget->height() + 10);
+	_sceneValue->raise();
+
 	_sceneCtrl = new SceneCtrl(ui->main3DWidget);
 	_sceneCtrl->installSimRender(QVector<SensorPositon>());
 }
@@ -64,6 +70,10 @@ void MainWindow::resizeEvent(QResizeEvent* event)
 	if (_widgetRp)
 	{
 		_widgetRp->move((sceneWidgetSize.width() - _widgetRp->width()) / 2.0, height() - 100);
+	}
+	if (_sceneValue)
+	{
+		_sceneValue->move(10, ui->headerWidget->height() + 10);
 	}
 }
 
@@ -105,6 +115,7 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 	double min, max;
 	bool firstCompare = true;
 	QVector<float> values;
+	QStringList names;
 	for (auto i = 0; i < pos.count(); i++)
 	{
 		auto fullName = pos[i].name + ((_currentDimType == ResType::GVA || _currentDimType == ResType::GVD) ? (QString("-") + weight) : "");
@@ -121,12 +132,13 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 				min = qMin(exdata.statistics[fullName].min, min);
 				max = qMax(exdata.statistics[fullName].max, max);
 			}
+			names.append(pos[i].name);
 		}
 	}
 	max = qMax(qAbs(min), qAbs(max));//正负只是方向而已，因此极值需要做取模
 	_widgetSvs->resetMaxThresholdValue(max);
 	_widgetSvs->resetRadiationThresholdValue(ui->main3DWidget->getModelNodeRadius() * 2.0);
-
+	_sceneValue->setSensorNames(names);
 	_sceneCtrl->installSimRender(pos);
 }
 
@@ -249,6 +261,7 @@ void MainWindow::handleTimestampChanged(int index)
 		values[i] = values[i] / _widgetSvs->getMaxThresholdValue();
 		values[i] = qMin(values[i], 1.0f);
 	}
+	_sceneValue->setSensorValues(values);
 	_sceneCtrl->updateSimValues(values);
 }
 

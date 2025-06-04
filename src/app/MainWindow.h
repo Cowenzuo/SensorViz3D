@@ -10,6 +10,7 @@ class SceneViewer;
 class SceneViewerSettings;
 class RendPlayer;
 class SceneCtrl;
+class SensorValues;
 
 class MainWindow : public NativeBaseWindow
 {
@@ -46,6 +47,7 @@ private:
 	SceneViewerSettings* _widgetSvs{ nullptr };
 	RendPlayer* _widgetRp{ nullptr };
 
+	SensorValues* _sceneValue{ nullptr };
 	SceneCtrl* _sceneCtrl{ nullptr };
 	ResType _currentDimType{ ResType::FP };
 	QString _currentWcname{""};

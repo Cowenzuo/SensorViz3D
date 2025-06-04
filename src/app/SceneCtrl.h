@@ -8,7 +8,7 @@
 #include "ProjectData.h"
 
 #define SHADER_VERT R"(
-	#version 110
+	#version 120
 
 	uniform mat4 osg_ViewMatrixInverse;
 
@@ -24,7 +24,7 @@
 	}
 )"
 #define SHADER_FRAG R"(
-	#version 110
+	#version 120
 
 	uniform int uValueNum;
 	uniform float uRadiationThreshold;
@@ -50,37 +50,50 @@
 		else{R = C; G = 0.0; B = X;}
 		return vec4((R + m), (G + m), (B + m), 1.0);
 	}
+	vec4 HSLToRGB2(float H, float S, float L)
+	{
+	    H = clamp(H, 0.0, 240.0);
+		float quantizedH = floor((H + 15.0) / 30.0) * 30.0;
+		quantizedH = min(quantizedH, 240.0);
+	    float C = (1.0 - abs(2.0 * L - 1.0)) * S;
+	    float X = C * (1.0 - abs(mod(quantizedH / 60.0, 2.0) - 1.0));
+	    float m = L - C / 2.0;
+	    
+	    float R, G, B;
+	    if (quantizedH < 60.0) {
+	        R = C; G = X; B = 0.0;
+	    } else if (quantizedH < 120.0) {
+	        R = X; G = C; B = 0.0;
+	    } else if (quantizedH < 180.0) {
+	        R = 0.0; G = C; B = X;
+	    } else {
+	        R = 0.0; G = X; B = C;
+	    }
+	    
+	    return vec4((R + m), (G + m), (B + m), 1.0);
+	}
 	void main()
 	{
 		vec4 color = vec4(0.5,0.5,0.5,1.0);
 		if(0<uValueNum){
-			float len[20];
-			float lengthAll=0.0;
-			for(int i=0;i<uValueNum;++i)
-			{
-				vec3 pos = uPositions[i];
-				len[i] = 1.0 / pow(length(vecWorldPos - pos.xyz),2.0);
-				if(uRadiationThreshold>0.0&&len[i]>uRadiationThreshold){continue;}
-				lengthAll += len[i];
-			}
-			float fValueAll=0.0;
-			for(int i=0;i<uValueNum;++i)
-			{
-				if(uRadiationThreshold>0.0&&len[i]>uRadiationThreshold){continue;}
-				fValueAll += (uValues[i] *  len[i]);
-			}
-			if(0.0 < lengthAll && 0.0 < fValueAll){
-				fValueAll /= lengthAll;
-				color = HSLToRGB((1.0 - fValueAll)*240.0,1.0,0.5);
-			}
-			else{
-				color =vec4(0.0,0.0,1.0,1.0);
-			}
+            float weightedSum = 0.0;
+            float weightTotal = 0.0;
+			for (int i = 0; i < uValueNum; i++) {
+                float distance = length(vecWorldPos - uPositions[i]);
+                if (distance > 0.0 && distance <= uRadiationThreshold) {
+					float weight = 1.0 / distance;
+					weightedSum += weight * abs(uValues[i]);
+					weightTotal += weight;
+				}
+            }
+            float interpolatedValue = weightTotal > 0.0 ? weightedSum / weightTotal : 0.0;
+			float normalizedValue = clamp(interpolatedValue, 0.0, 1.0);
+			color = HSLToRGB2((1.0 - normalizedValue)*240.0,1.0,0.5);
 		}
-	    vec3 lightDir = normalize(vec3(gl_LightSource[0].position));
-	    vec3 normal   = normalize(vecNormal);
-	    float NdotL   = max(dot(normal, lightDir), 0.0);
-	    gl_FragColor =  NdotL * color * gl_LightSource[0].diffuse +  color * gl_LightSource[0].ambient;
+		vec3 lightDir = normalize(vec3(gl_LightSource[0].position));
+		vec3 normal   = normalize(vecNormal);
+		float NdotL   = max(dot(normal, lightDir), 0.0);
+		gl_FragColor =  NdotL * color * gl_LightSource[0].diffuse +  color * gl_LightSource[0].ambient;
 	}
 )"
 
