@@ -153,17 +153,17 @@ void MainWindow::headerMenuTriggered() {
 	QAction* viewTableImg = menu.addAction("查看报表");
 	viewTableImg->setCheckable(true);
 	viewTableImg->setChecked(chartsViewerVisible);
-	//QAction* saveToLoacl = menu.addAction("导出数据图表");
+	QAction* saveToLoacl = menu.addAction("导出数据图表");
 
 	importDataPackage->setEnabled(!isSetData);
 	generateReport->setEnabled(isSetData && !isLoadData);
 	viewTableImg->setEnabled(isLoadData);
-	//saveToLoacl->setEnabled(isSetData);
+	saveToLoacl->setEnabled(isSetData);
 
 	connect(importDataPackage, &QAction::triggered, this, &MainWindow::importDataPkgTriggered);
 	connect(generateReport, &QAction::triggered, this, &MainWindow::generateReportTriggered);
 	connect(viewTableImg, &QAction::toggled, this, &MainWindow::viewTableImgTriggered);
-	//connect(saveToLoacl, &QAction::triggered, this, &MainWindow::saveToLoaclTriggered);
+	connect(saveToLoacl, &QAction::triggered, this, &MainWindow::saveToLoaclTriggered);
 	menu.exec(QCursor::pos());
 }
 

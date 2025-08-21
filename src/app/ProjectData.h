@@ -179,7 +179,8 @@ private:
 		const QString& dirPath,
 		const QMap<QString, WorkingConditions>& wc,
 		QMap<QString, AnalyseData>& analyseData,
-		ResType type
+		ResType type,
+		bool pregGenData =false
 	);
 	/**
 	 * @brief 处理分段数据
@@ -207,8 +208,10 @@ private:
 		const QString& titleSeq,
 		const QString& titlename,
 		const QString& unit,
+		ResType type,
 		const QMap<QString, WorkingConditions>& wcs,
 		QMap<QString, AnalyseData>& analyseData
+
 	);
 private:
 	//辅助函数：纯定制，无通用性，只是为了方遍从一个rootDir中提取出文件夹名字为foldername的完整文件夹路径

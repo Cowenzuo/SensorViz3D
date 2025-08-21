@@ -1,10 +1,10 @@
+#include <iostream>
+
 #include <QtWidgets/QApplication>
 #include <QSurfaceFormat>
 
 #include "Application.h"
-
-//just for test
-//#include "ProjectData.h"
+#include "ProjectData.h"
 
 void setupSurface()
 {
@@ -23,17 +23,23 @@ void setupSurface()
 
 int main(int argc, char* argv[])
 {
+    Application app(argc, argv);  // 先创建应用对象
 
+    // 参数校验（argv[0]是程序自身路径）
+    if (argc != 1 && argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " [data_path export_path]" << std::endl;
+        return 1;
+    }
+
+    if (argc >= 3) {
+        // 带参数模式：加载数据包后启动
+        setupSurface();
+        ProjectData projectData(nullptr);
+        projectData.setDataPackage(argv[1], argv[2], true);  // 使用命令行参数
+        return 0;
+    }
+    // 无参数模式：直接启动界面
 	setupSurface();
-
-	Application app(argc, argv);
-	app.showMainWindow(true);
-
-	//just for test
-	//ProjectData projectData(nullptr);
-	//projectData.setDataPackage("../data/2025_03_22_Experiment", "../data/2025_03_22_Experiment/export", true);
-	//projectData.setDataPackage("../data/2025_03_23_Experiment", "../data/2025_03_23_Experiment/export", true);
-	//projectData.setDataPackage("../data/2025_03_24_Experiment", "../data/2025_03_24_Experiment/export", true);
-
-	return app.exec();
+    app.showMainWindow(true);
+    return app.exec();
 }
