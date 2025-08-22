@@ -18,6 +18,11 @@
 #include <osgGA/TrackballManipulator>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
+#include <osg/BlendFunc>
+#include <osg/Material>
+#include <osg/StateSet>
+#include <osg/LineWidth>
+#include <osg/PolygonOffset>
 
 #include "CameraManipulator.h"
 
@@ -46,9 +51,9 @@ SceneViewer::~SceneViewer()
 
 float SceneViewer::getModelNodeRadius()
 {
-	if (_modelNode.valid())
+	if (_modelMtx.valid())
 	{
-		return _modelNode->computeBound().radius();
+		return _modelMtx->computeBound().radius();
 	}
 	return 0.0f;
 }
@@ -58,7 +63,7 @@ void SceneViewer::setSensorPos(osg::Vec3Array* pos)
 	int sensorSize = _sensorNodes.size();
 	for (int i = 0; i < sensorSize; i++)
 	{
-		_rootNode->removeChild(_sensorNodes[i]);
+		_modelMtx->removeChild(_sensorNodes[i]);
 	}
 
 	int posSize = pos->size();
@@ -69,8 +74,17 @@ void SceneViewer::setSensorPos(osg::Vec3Array* pos)
 		osg::ref_ptr<osg::Geode> geode = new osg::Geode();
 		geode->addDrawable(sensorNode);
 		_sensorNodes.push_back(geode.get());
-		_rootNode->addChild(geode.get());
+		_modelMtx->addChild(geode.get());
 	}
+}
+
+void SceneViewer::showDisplacementPreModel(bool visible)
+{
+	if (!_modelDispmentPreNode.valid())
+	{
+		return;
+	}
+	_modelDispmentPreNode->setNodeMask(visible ? 1 : 0);
 }
 
 void SceneViewer::resizeEvent(QResizeEvent* event)
@@ -185,7 +199,7 @@ void SceneViewer::loadLand(int xcount, int ycount, float xstep, float ystep)
 		for (int x = 0; x <= xcount; ++x) {
 			float xPos = x * xstep - halfX;
 			float yPos = y * ystep - halfY;
-			vertices->push_back(osg::Vec3(xPos, yPos, -12.0f));
+			vertices->push_back(osg::Vec3(xPos, yPos, 0.0f));
 		}
 	}
 
@@ -249,7 +263,7 @@ void SceneViewer::loadLand(int xcount, int ycount, float xstep, float ystep)
             float maxDist = max(abs(oWorldPos.x), abs(oWorldPos.y));
             
             // 计算透明度（距离越远越透明）
-            float alpha = 1.0 - smoothstep(0.0, 300.0, dist);
+            float alpha = 1.0 - smoothstep(0.0, 90.0, dist);
             
             // 应用透明度
             gl_FragColor = vec4(1.0, 1.0, 1.0, alpha * 0.2); // 0.7是基础透明度
@@ -267,6 +281,20 @@ void SceneViewer::loadLand(int xcount, int ycount, float xstep, float ystep)
 	stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
 	stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 	_rootNode->addChild(geode);
+}
+
+void SceneViewer::setNodeTransparent(osg::Node* node)
+{
+	osg::ref_ptr<osg::StateSet> stateset = node->getOrCreateStateSet();
+	osg::ref_ptr<osg::PolygonMode> wirePolyMode = new osg::PolygonMode;
+	wirePolyMode->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::LINE);
+	stateset->setAttributeAndModes(wirePolyMode);
+	osg::ref_ptr<osg::LineWidth> lineWidth = new osg::LineWidth(1.0f);
+	stateset->setAttribute(lineWidth);
+	osg::ref_ptr<osg::PolygonOffset> polyOffset = new osg::PolygonOffset;
+	polyOffset->setFactor(-0.1f);
+	polyOffset->setUnits(-0.1f);
+	stateset->setAttributeAndModes(polyOffset);
 }
 
 void SceneViewer::on3DInitialized()
@@ -301,16 +329,19 @@ void SceneViewer::on3DInitialized()
 	//_rootNode->getOrCreateStateSet()->setMode(GL_BLEND, osg::StateAttribute::ON);
 	auto modelpath = QCoreApplication::applicationDirPath() + QString("/data/models/jq.obj");
 	_modelNode = osgDB::readNodeFile(modelpath.toUtf8().data());
-
-	osg::ref_ptr<osg::MatrixTransform> mtx = new osg::MatrixTransform;
-	mtx->setMatrix(osg::Matrix::scale(osg::Vec3f(10.0f,10.0f,10.0f)));
-	mtx->addChild(_modelNode.get());
+	_modelDispmentPreNode = osgDB::readNodeFile(modelpath.toUtf8().data());
+	setNodeTransparent(_modelDispmentPreNode.get());
+	showDisplacementPreModel(false);
+	_modelMtx = new osg::MatrixTransform;
+	_modelMtx->setMatrix(osg::Matrix::scale(osg::Vec3f(1.0f, 1.0f, 1.0f)));
+	_modelMtx->addChild(_modelNode.get());
+	_modelMtx->addChild(_modelDispmentPreNode.get());
 	loadSkyBox();
-	loadLand(200, 200, 5.0f, 5.0f);
+	loadLand(300, 300, 1.0f, 1.0f);
 
-	_rootNode->addChild(mtx.get());
-	auto pos = mtx->computeBound().center();
-	float radius = mtx->computeBound().radius();
+	_rootNode->addChild(_modelMtx.get());
+	auto pos = _modelMtx->computeBound().center();
+	float radius = _modelMtx->computeBound().radius();
 
 	// 计算斜上方45度的相机位置
 	// 使用球坐标计算：距离为半径的2倍，方位角45度，俯仰角45度

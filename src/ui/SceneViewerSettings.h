@@ -16,23 +16,27 @@ public:
 	~SceneViewerSettings();
 
 	QString getCurrentWeight();
+	int getCurrentWeightIndex();
+	float getCurrentRange();
 
-	void resetMaxThresholdValue(float max);
+	void resetMinmaxThresholdValue(float max, float min);
 
 	float getMaxThresholdValue();
+	float getMinThresholdValue();
 
-	void resetRadiationThresholdValue(float max);
-
-	float getRadiationThresholdValue();
-
+	float getDispmentScaled();
+private slots:
+	void updateColorMap();
 signals:
 	void currentWeightChanged(const QString& value);
-	void maxThresholdChanged(float value);
-	void radiationThresholdChanged(float value);
+	void minmaxThresholdChanged();
+	void dispmentScaledChanged(float value);
 
 private:
 	Ui::SceneViewerSettingsClass* ui;
 
 	float preMaxValue{ -1.0 };
-	float preRadiationValue{ -1.0 };
+	float preMinValue{ -1.0 };
+	float currentRange{ -1.0 };
+	float preDispmentScaled{ 1.0 };
 };

@@ -32,7 +32,9 @@ private:
 	AutosizeosgQt* _osgWidget;
 	osg::ref_ptr<osg::Group> _rootNode{ new osg::Group };
 	osg::ref_ptr<osg::Node> _modelNode{ };
+	osg::ref_ptr<osg::Node> _modelDispmentPreNode{ };
 	std::vector<osg::Geode*> _sensorNodes{ };//默认最大20个
+	osg::ref_ptr<osg::MatrixTransform> _modelMtx{};
 public:
 	SceneViewer(QWidget* parent = nullptr);
 	~SceneViewer();
@@ -53,6 +55,7 @@ public:
 
 	void setSensorPos(osg::Vec3Array* pos);
 
+	void showDisplacementPreModel(bool visible);
 protected:
 	void resizeEvent(QResizeEvent* event) override;
 
@@ -60,6 +63,7 @@ private:
 	void loadSkyBox();
 	void loadLand(int xcount, int ycount, float xstep, float ystep);
 
+	void setNodeTransparent(osg::Node* node);
 private slots:
 	void on3DInitialized();
 

@@ -8,31 +8,88 @@
 #include "ProjectData.h"
 
 #define SHADER_VERT R"(
-	#version 120
+	#version 330
+	layout(location = 0) in vec4 vertex;
+	layout(location = 2) in vec3 normal;
 
+	// osg build-in
+	uniform mat4 osg_ModelViewProjectionMatrix;
+	uniform mat4 osg_ModelViewMatrix;
 	uniform mat4 osg_ViewMatrixInverse;
+	uniform mat3 osg_NormalMatrix;
 
-	varying vec3 vecWorldPos;
-	varying vec3 vecNormal;
+	uniform int uValueNum;
+	uniform vec3 uPositions[20];
+	uniform float uValues[20];
+	uniform int uWeight = 0;
+	uniform int uDisplacement = 1;
+	uniform float uDispScale = 1.0;
+	uniform float uMinValue = 0.0;
+	uniform float uRangeValue = 0.0;
 
-	void main()
-	{
-	  gl_TexCoord[0] = gl_MultiTexCoord0;
-	  vecWorldPos = (osg_ViewMatrixInverse * gl_ModelViewMatrix * gl_Vertex).xyz;
-	  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-	  vecNormal = normalize( (gl_NormalMatrix * gl_Normal).xyz );
+
+	out vec3 oWorldPos;
+	out vec3 oNormal;
+
+	void main(void) {
+	    // 初始模型坐标
+	    vec4 displacedVertex = vertex;
+	    
+	    // 计算原始世界坐标（注意：实际得到的是模型坐标，建议检查矩阵运算）
+	    oWorldPos = (osg_ViewMatrixInverse * osg_ModelViewMatrix * displacedVertex).xyz;
+	    oNormal = normalize(osg_NormalMatrix * normal);
+	 
+	    if(uValueNum > 0 && uDisplacement == 1) {
+	        float weightedSum = 0.0;
+	        float weightTotal = 0.0;
+	        
+	        // 计算基于世界坐标的权重
+	        for(int i = 0; i < uValueNum; i++) {
+	            float distance = length(oWorldPos - uPositions[i]);
+	            float w = 1.0 / (distance + 0.0001); // 添加极小值防止除零
+	            weightedSum += w * uValues[i];
+	            weightTotal += w;
+	        }
+	        
+	        // 归一化并钳制值
+	        float interpolatedValue = weightTotal > 0.0 ? weightedSum / weightTotal : 0.0;
+	        float normalizedValue = clamp(interpolatedValue, 0.0, 1.0);
+			float trueValueScale =(normalizedValue * uRangeValue + uMinValue)* uDispScale;
+	 
+	        // 应用位移到模型坐标
+	        if(uWeight == 0) {
+	            displacedVertex.xyz += vec3(trueValueScale, 0.0, 0.0);
+	        }
+			else if(uWeight == 1) {
+	            displacedVertex.xyz += vec3(0.0, trueValueScale, 0.0);
+	        }
+			else if(uWeight == 2) {
+	            displacedVertex.xyz += vec3(0.0, 0.0, trueValueScale);
+	        }
+			
+	    }
+	    // 更新世界坐标输出
+	    oWorldPos = (osg_ViewMatrixInverse * osg_ModelViewMatrix * displacedVertex).xyz;
+	    // 计算最终位置
+	    gl_Position = osg_ModelViewProjectionMatrix * displacedVertex;
 	}
 )"
 #define SHADER_FRAG R"(
-	#version 120
+	#version 330
+
+	layout(location = 0) out vec4 fragcolor;
+
+	in vec3 oWorldPos;
+	in vec3 oNormal;
 
 	uniform int uValueNum;
-	uniform float uRadiationThreshold;
 	uniform vec3 uPositions[20];
 	uniform float uValues[20];
 
-	varying vec3 vecWorldPos;
-	varying vec3 vecNormal;
+	// build-in
+	uniform vec3 uLightDirection = normalize(vec3(0.0, 0.0, 1.0));  // Z轴朝上坐标系
+	uniform vec4 uLightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+	uniform vec4 uLightAmbient = vec4(0.2, 0.2, 0.2, 1.0);
 
 	vec4 HSLToRGB(float H, float S, float L)
 	{	
@@ -79,21 +136,17 @@
             float weightedSum = 0.0;
             float weightTotal = 0.0;
 			for (int i = 0; i < uValueNum; i++) {
-                float distance = length(vecWorldPos - uPositions[i]);
-                if (distance > 0.0 && distance <= uRadiationThreshold) {
-					float weight = 1.0 / distance;
-					weightedSum += weight * abs(uValues[i]);
-					weightTotal += weight;
-				}
+                float distance = length(oWorldPos - uPositions[i]);
+				float weight = 1.0 / distance;
+				weightedSum += weight * uValues[i];
+				weightTotal += weight;
             }
             float interpolatedValue = weightTotal > 0.0 ? weightedSum / weightTotal : 0.0;
 			float normalizedValue = clamp(interpolatedValue, 0.0, 1.0);
 			color = HSLToRGB2((1.0 - normalizedValue)*240.0,1.0,0.5);
 		}
-		vec3 lightDir = normalize(vec3(gl_LightSource[0].position));
-		vec3 normal   = normalize(vecNormal);
-		float NdotL   = max(dot(normal, lightDir), 0.0);
-		gl_FragColor =  NdotL * color * gl_LightSource[0].diffuse +  color * gl_LightSource[0].ambient;
+		float NdotL   = max(dot(oNormal, uLightDirection), 0.0);
+		fragcolor =  NdotL * color * uLightDiffuse +  color * uLightAmbient;
 	}
 )"
 
@@ -110,7 +163,11 @@ class SceneViewer;
 		//0~1.0之间的值，提前算好再给进来
 		bool updateSimValues(QVector<float> values);
 
-		bool updateRadiationThreshold(float value);
+		bool updateDispmentScaled(float value);
+
+		bool updateWeight(int value);
+		bool updateDisplacement(int value);
+		bool updateDisplacementRange(float min,float range);
 
 		bool uninstallSimRender();
 

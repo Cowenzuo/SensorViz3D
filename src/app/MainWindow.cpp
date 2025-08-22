@@ -32,8 +32,8 @@ MainWindow::MainWindow(QWidget* parent) : NativeBaseWindow(parent), ui(new Ui::M
 	_widgetSvs->move(sceneWidgetSize.width() - 350, ui->headerWidget->height() + 10);
 	_widgetSvs->raise();
 	connect(_widgetSvs, &SceneViewerSettings::currentWeightChanged, this, &MainWindow::handleWeightChanged);
-	connect(_widgetSvs, &SceneViewerSettings::maxThresholdChanged, this, &MainWindow::handleMaxThresholdChanged);
-	connect(_widgetSvs, &SceneViewerSettings::radiationThresholdChanged, this, &MainWindow::handleRadiationThresholdChanged);
+	connect(_widgetSvs, &SceneViewerSettings::minmaxThresholdChanged, this, &MainWindow::handleMinMaxThresholdChanged);
+	connect(_widgetSvs, &SceneViewerSettings::dispmentScaledChanged, this, &MainWindow::handleDispmentScaledChanged);
 
 
 	_widgetRp = new RendPlayer(this);
@@ -114,7 +114,6 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 	auto weight = _widgetSvs->getCurrentWeight();
 	double min, max;
 	bool firstCompare = true;
-	QVector<float> values;
 	QStringList names;
 	for (auto i = 0; i < pos.count(); i++)
 	{
@@ -135,11 +134,22 @@ void MainWindow::wcSelectChangedSlot(ResType type, QString wcname)
 			names.append(pos[i].name);
 		}
 	}
-	max = qMax(qAbs(min), qAbs(max));//正负只是方向而已，因此极值需要做取模
-	_widgetSvs->resetMaxThresholdValue(max);
-	_widgetSvs->resetRadiationThresholdValue(ui->main3DWidget->getModelNodeRadius() * 2.0);
+	_widgetSvs->resetMinmaxThresholdValue(max,min);
 	_sceneValue->setSensorNames(names);
 	_sceneCtrl->installSimRender(pos);
+	if ((_currentDimType == ResType::GVD || _currentDimType == ResType::GVDExtra))
+	{
+		ui->main3DWidget->showDisplacementPreModel(true);
+		_sceneCtrl->updateWeight(_widgetSvs->getCurrentWeightIndex());
+		_sceneCtrl->updateDisplacement(1);
+		//_sceneCtrl->updateDisplacementRange(float(min), float(max - min));
+		_sceneCtrl->updateDisplacementRange(_widgetSvs->getMinThresholdValue(), _widgetSvs->getCurrentRange());
+	}
+	else
+	{
+		ui->main3DWidget->showDisplacementPreModel(false);
+		_sceneCtrl->updateDisplacement(0);
+	}
 }
 
 void MainWindow::headerMenuTriggered() {
@@ -252,31 +262,58 @@ void MainWindow::handleTimestampChanged(int index)
 		if (exdata.statistics.contains(fullName))
 		{
 
-			values.push_back(qAbs(exdata.data[fullName][index]));
+			values.push_back(exdata.data[fullName][index]);
 		}
 	}
-
+	_sceneValue->setSensorValues(values);
 	for (size_t i = 0; i < values.count(); i++)
 	{
-		values[i] = values[i] / _widgetSvs->getMaxThresholdValue();
-		values[i] = qMin(values[i], 1.0f);
+		values[i] = (values[i]- _widgetSvs->getMinThresholdValue()) / _widgetSvs->getCurrentRange();
 	}
-	_sceneValue->setSensorValues(values);
 	_sceneCtrl->updateSimValues(values);
 }
 
 void MainWindow::handleWeightChanged(const QString& value)
 {
+	auto pos = cApp->getProjData()->getSensorPositions(_currentDimType);
+	if (pos.isEmpty())
+		return;
+	auto& exdata = cApp->getProjData()->getExtraData(_currentDimType, _currentWcname);
+	auto weight = _widgetSvs->getCurrentWeight();
+	double min, max;
+	bool firstCompare = true;
+	for (auto i = 0; i < pos.count(); i++)
+	{
+		auto fullName = pos[i].name + ((_currentDimType == ResType::GVA || _currentDimType == ResType::GVD) ? (QString("-") + weight) : "");
+		if (exdata.statistics.contains(fullName))
+		{
+			if (firstCompare)
+			{
+				firstCompare = false;
+				min = exdata.statistics[fullName].min;
+				max = exdata.statistics[fullName].max;
+			}
+			else
+			{
+				min = qMin(exdata.statistics[fullName].min, min);
+				max = qMax(exdata.statistics[fullName].max, max);
+			}
+		}
+	}
+	_widgetSvs->resetMinmaxThresholdValue(max, min);
+	//_sceneCtrl->updateDisplacementRange(float(min), float(max - min));
+	_sceneCtrl->updateDisplacementRange(_widgetSvs->getMinThresholdValue(), _widgetSvs->getCurrentRange());
+	_sceneCtrl->updateWeight(_widgetSvs->getCurrentWeightIndex());
 	handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }
 
-void MainWindow::handleMaxThresholdChanged(float value)
+void MainWindow::handleMinMaxThresholdChanged()
 {
 	handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }
 
-void MainWindow::handleRadiationThresholdChanged(float value)
+void MainWindow::handleDispmentScaledChanged(float value)
 {
-	_sceneCtrl->updateRadiationThreshold(value);
-	//handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
+	_sceneCtrl->updateDispmentScaled(value);
+	handleTimestampChanged(_widgetRp->getCurrentTimpstamp());
 }
